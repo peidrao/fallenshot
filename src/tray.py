@@ -173,10 +173,11 @@ class _DbusMenu(dbus.service.Object):
 class _StatusNotifierItem(dbus.service.Object):
     """Minimal StatusNotifierItem D-Bus object."""
 
-    def __init__(self, bus: dbus.SessionBus, icon_pixmap: list) -> None:
+    def __init__(self, bus: dbus.SessionBus, icon_pixmap: list, on_capture: Callable) -> None:
         self._service_name = f"org.kde.StatusNotifierItem-{os.getpid()}-1"
         self._bus_name = dbus.service.BusName(self._service_name, bus)
         self._icon_pixmap = icon_pixmap
+        self._on_capture = on_capture
         super().__init__(bus, _SNI_PATH)
 
     def _props(self) -> dict:
@@ -209,7 +210,7 @@ class _StatusNotifierItem(dbus.service.Object):
     @dbus.service.method(dbus_interface=_SNI_IFACE,
                          in_signature="ii", out_signature="")
     def Activate(self, _x: int, _y: int) -> None:  # noqa: N802
-        pass
+        GLib.idle_add(self._on_capture)
 
     @dbus.service.method(dbus_interface=_SNI_IFACE,
                          in_signature="ii", out_signature="")
@@ -250,7 +251,7 @@ def register_tray_icon(
         icon_pixmap = _load_icon_pixmap(icon_path)
 
         menu = _DbusMenu(bus, on_capture, on_capture5, on_quit)
-        sni = _StatusNotifierItem(bus, icon_pixmap)
+        sni = _StatusNotifierItem(bus, icon_pixmap, on_capture)
 
         watcher = bus.get_object(_WATCHER_NAME, _WATCHER_PATH)
         dbus.Interface(watcher, _WATCHER_IFACE).RegisterStatusNotifierItem(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Callable
 
 import dbus
@@ -51,7 +52,7 @@ class ScreenCastSession:
     def __init__(self) -> None:
         self._bus = dbus.SessionBus()
         self._session_path: str | None = None
-        self._restore_token: str | None = None
+        self._restore_token: str | None = self._load_restore_token()
         self._callback: FrameCallback | None = None
         self._pipeline: Gst.Pipeline | None = None
         self._signals: list = []
@@ -77,6 +78,29 @@ class ScreenCastSession:
 
     def _token(self) -> str:
         return f"fs{GLib.get_monotonic_time()}"
+
+    @staticmethod
+    def _restore_token_path() -> str:
+        state_home = os.environ.get("XDG_STATE_HOME", os.path.expanduser("~/.local/state"))
+        return os.path.join(state_home, "fallenshot", "screencast_restore_token")
+
+    def _load_restore_token(self) -> str | None:
+        path = self._restore_token_path()
+        try:
+            with open(path, "r", encoding="utf-8") as token_file:
+                token = token_file.read().strip()
+                return token or None
+        except OSError:
+            return None
+
+    def _save_restore_token(self, token: str) -> None:
+        path = self._restore_token_path()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as token_file:
+                token_file.write(token)
+        except OSError as exc:
+            print(f"[screencast] Could not persist restore token: {exc}")
 
     def _watch(self, path: str, handler: Callable) -> None:
         req = self._bus.get_object(_PORTAL, path)
@@ -129,6 +153,7 @@ class ScreenCastSession:
             return self._fail(f"Start failed (code={code})")
         if "restore_token" in results:
             self._restore_token = str(results["restore_token"])
+            self._save_restore_token(self._restore_token)
         streams = results.get("streams", [])
         if not streams:
             return self._fail("No streams in Start response")

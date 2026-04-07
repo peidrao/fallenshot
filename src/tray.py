@@ -36,17 +36,34 @@ def _load_icon_pixmap(icon_path: str) -> list:
     """Load PNG icon and return it as ARGB32 array for SNI IconPixmap."""
     try:
         pb = GdkPixbuf.Pixbuf.new_from_file_at_size(icon_path, 32, 32)
-        pb = pb.convert(GdkPixbuf.Colorspace.RGB, True, 8, 32, 32)
+        width = pb.get_width()
+        height = pb.get_height()
+        n_channels = pb.get_n_channels()
+        has_alpha = pb.get_has_alpha()
+        rowstride = pb.get_rowstride()
         raw = pb.get_pixels()
+
+        if n_channels < 3:
+            raise ValueError(f"Unexpected channel count: {n_channels}")
+
         # SNI expects ARGB32 big-endian: swap RGBA → ARGB
-        argb = bytearray(len(raw))
-        for i in range(0, len(raw), 4):
-            r, g, b, a = raw[i], raw[i+1], raw[i+2], raw[i+3]
-            argb[i]   = a
-            argb[i+1] = r
-            argb[i+2] = g
-            argb[i+3] = b
-        return [(dbus.Int32(32), dbus.Int32(32),
+        argb = bytearray(width * height * 4)
+        dst = 0
+        for y in range(height):
+            row = y * rowstride
+            for x in range(width):
+                src = row + x * n_channels
+                red = raw[src]
+                green = raw[src + 1]
+                blue = raw[src + 2]
+                alpha = raw[src + 3] if has_alpha and n_channels >= 4 else 255
+                argb[dst] = alpha
+                argb[dst + 1] = red
+                argb[dst + 2] = green
+                argb[dst + 3] = blue
+                dst += 4
+
+        return [(dbus.Int32(width), dbus.Int32(height),
                  dbus.Array(argb, signature="y"))]
     except Exception as exc:
         print(f"[tray] Could not load icon pixmap: {exc}")

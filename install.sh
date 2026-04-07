@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # ------------------------------------------------------------------
 DEPS=(python3 python3-gi python3-gi-cairo python3-dbus
       gir1.2-gtk-4.0 gir1.2-gdkpixbuf-2.0
+      gir1.2-ayatanaappindicator3-0.1
       xdg-desktop-portal xdg-desktop-portal-gnome
       wl-clipboard)
 

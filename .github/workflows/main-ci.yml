@@ -29,7 +29,10 @@ jobs:
             python3-gi-cairo \
             python3-dbus \
             gir1.2-gtk-4.0 \
-            gir1.2-gdkpixbuf-2.0
+            gir1.2-gdkpixbuf-2.0 \
+            gir1.2-gstreamer-1.0 \
+            gir1.2-gst-plugins-base-1.0 \
+            gstreamer1.0-plugins-base
 
       - name: Compile source files
         run: python -m compileall -q src
@@ -40,5 +43,8 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install --upgrade pip -r requirements.txt
 
+      - name: Lint with ruff
+        run: ruff check src tests
+
       - name: Run unit tests
-        run: pytest -q
+        run: pytest -q --tb=short

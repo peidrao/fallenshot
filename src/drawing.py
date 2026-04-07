@@ -164,7 +164,9 @@ class TextAnnotation(Shape):
         if not self.text:
             return
 
-        context.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        context.select_font_face(
+            "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
         context.set_font_size(self.font_size)
 
         context.set_source_rgba(0, 0, 0, 0.6)

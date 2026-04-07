@@ -104,7 +104,9 @@ class ExportManager:
         png_filter.add_mime_type("image/png")
         save_dialog.add_filter(png_filter)
 
-        def on_dialog_response(dialog: Gtk.FileChooserDialog, response: Gtk.ResponseType) -> None:
+        def on_dialog_response(
+            dialog: Gtk.FileChooserDialog, response: Gtk.ResponseType
+        ) -> None:
             dialog.destroy()
             if response != Gtk.ResponseType.ACCEPT:
                 if on_done is not None:

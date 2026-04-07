@@ -103,7 +103,10 @@ class FallenshotApp(Gtk.Application):
     def _on_region_selected(
         self,
         pixbuf: GdkPixbuf.Pixbuf,
-        x: int, y: int, w: int, h: int,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
     ) -> None:
         """User confirmed a region — open the annotation overlay."""
         try:

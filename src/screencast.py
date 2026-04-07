@@ -15,6 +15,7 @@ _HAS_GST = False
 try:
     gi.require_version("Gst", "1.0")
     from gi.repository import Gst
+
     Gst.init(None)
     _HAS_GST = True
 except Exception:
@@ -24,10 +25,10 @@ from gi.repository import GdkPixbuf, GLib
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-_PORTAL      = "org.freedesktop.portal.Desktop"
+_PORTAL = "org.freedesktop.portal.Desktop"
 _PORTAL_PATH = "/org/freedesktop/portal/desktop"
-_SC_IFACE    = "org.freedesktop.portal.ScreenCast"
-_SESS_IFACE  = "org.freedesktop.portal.Session"
+_SC_IFACE = "org.freedesktop.portal.ScreenCast"
+_SESS_IFACE = "org.freedesktop.portal.Session"
 _DEFAULT_CAPTURE_WARMUP_MS = 350
 _DEFAULT_REQUEST_TIMEOUT_MS = 12000
 
@@ -87,7 +88,9 @@ class ScreenCastSession:
 
     @staticmethod
     def _read_capture_warmup_ms() -> int:
-        raw = os.environ.get("FALLENSHOT_CAPTURE_WARMUP_MS", str(_DEFAULT_CAPTURE_WARMUP_MS))
+        raw = os.environ.get(
+            "FALLENSHOT_CAPTURE_WARMUP_MS", str(_DEFAULT_CAPTURE_WARMUP_MS)
+        )
         try:
             value = int(raw)
         except ValueError:
@@ -96,7 +99,9 @@ class ScreenCastSession:
 
     @staticmethod
     def _read_request_timeout_ms() -> int:
-        raw = os.environ.get("FALLENSHOT_REQUEST_TIMEOUT_MS", str(_DEFAULT_REQUEST_TIMEOUT_MS))
+        raw = os.environ.get(
+            "FALLENSHOT_REQUEST_TIMEOUT_MS", str(_DEFAULT_REQUEST_TIMEOUT_MS)
+        )
         try:
             value = int(raw)
         except ValueError:
@@ -105,7 +110,9 @@ class ScreenCastSession:
 
     @staticmethod
     def _restore_token_path() -> str:
-        state_home = os.environ.get("XDG_STATE_HOME", os.path.expanduser("~/.local/state"))
+        state_home = os.environ.get(
+            "XDG_STATE_HOME", os.path.expanduser("~/.local/state")
+        )
         return os.path.join(state_home, "fallenshot", "screencast_restore_token")
 
     def _load_restore_token(self) -> str | None:
@@ -161,10 +168,12 @@ class ScreenCastSession:
         return dbus.Interface(self._bus.get_object(_PORTAL, _PORTAL_PATH), _SC_IFACE)
 
     def _create_session(self) -> None:
-        path = self._sc().CreateSession({
-            "handle_token":         dbus.String(self._token(), variant_level=1),
-            "session_handle_token": dbus.String(self._token(), variant_level=1),
-        })
+        path = self._sc().CreateSession(
+            {
+                "handle_token": dbus.String(self._token(), variant_level=1),
+                "session_handle_token": dbus.String(self._token(), variant_level=1),
+            }
+        )
         self._watch(path, self._on_session_created)
 
     def _on_session_created(self, code: int, results: dict) -> None:
@@ -176,10 +185,10 @@ class ScreenCastSession:
     def _select_sources(self, *, with_restore_token: bool = True) -> None:
         opts: dict = {
             "handle_token": dbus.String(self._token(), variant_level=1),
-            "types":        dbus.UInt32(1, variant_level=1),   # Monitor
-            "multiple":     dbus.Boolean(False, variant_level=1),
-            "cursor_mode":  dbus.UInt32(2, variant_level=1),   # embedded
-            "persist_mode": dbus.UInt32(2, variant_level=1),   # cross-session token
+            "types": dbus.UInt32(1, variant_level=1),  # Monitor
+            "multiple": dbus.Boolean(False, variant_level=1),
+            "cursor_mode": dbus.UInt32(2, variant_level=1),  # embedded
+            "persist_mode": dbus.UInt32(2, variant_level=1),  # cross-session token
         }
         if self._restore_token and with_restore_token:
             opts["restore_token"] = dbus.String(self._restore_token, variant_level=1)
@@ -187,7 +196,9 @@ class ScreenCastSession:
             path = self._sc().SelectSources(dbus.ObjectPath(self._session_path), opts)
         except dbus.DBusException as exc:
             if self._restore_token and "InvalidArgument" in str(exc):
-                print("[screencast] Restore token rejected by portal — clearing and retrying.")
+                print(
+                    "[screencast] Restore token rejected by portal — clearing and retrying."
+                )
                 self._clear_restore_token()
                 self._select_sources(with_restore_token=False)
             else:
@@ -218,7 +229,9 @@ class ScreenCastSession:
         if not streams:
             return self._fail("No streams in Start response")
         node_id = int(streams[0][0])
-        GLib.timeout_add(self._capture_warmup_ms, self._open_remote_after_warmup, node_id)
+        GLib.timeout_add(
+            self._capture_warmup_ms, self._open_remote_after_warmup, node_id
+        )
 
     def _open_remote_after_warmup(self, node_id: int) -> bool:
         self._open_remote(node_id)
@@ -281,7 +294,7 @@ class ScreenCastSession:
                 pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
                     gbytes,
                     GdkPixbuf.Colorspace.RGB,
-                    True,   # has_alpha — RGBA format
+                    True,  # has_alpha — RGBA format
                     8,
                     width,
                     height,

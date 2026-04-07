@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 SelectCallback = Callable[[GdkPixbuf.Pixbuf, int, int, int, int], None]
 CancelCallback = Callable[[], None]
 
-_DIM = 0.48          # overlay alpha when no selection
-_MIN_PX = 10         # minimum selection side in window pixels
+_DIM = 0.48  # overlay alpha when no selection
+_MIN_PX = 10  # minimum selection side in window pixels
 
 
 class SelectorWindow(Gtk.ApplicationWindow):
@@ -80,9 +80,9 @@ class SelectorWindow(Gtk.ApplicationWindow):
         area.set_cursor(Gdk.Cursor.new_from_name("crosshair"))
 
         drag = Gtk.GestureDrag()
-        drag.connect("drag-begin",  self._drag_begin)
+        drag.connect("drag-begin", self._drag_begin)
         drag.connect("drag-update", self._drag_update)
-        drag.connect("drag-end",    self._drag_end)
+        drag.connect("drag-end", self._drag_end)
         area.add_controller(drag)
 
         key = Gtk.EventControllerKey()
@@ -142,12 +142,17 @@ class SelectorWindow(Gtk.ApplicationWindow):
             if rw > 0 and rh > 0:
                 self._draw_selection(cr, rx, ry, rw, rh)
         else:
-            _draw_hint(cr, win_w, win_h,
-                       "Click and drag to select area  ·  ESC to cancel")
+            _draw_hint(
+                cr, win_w, win_h, "Click and drag to select area  ·  ESC to cancel"
+            )
 
     def _draw_selection(
-        self, cr: cairo.Context,
-        rx: float, ry: float, rw: float, rh: float,
+        self,
+        cr: cairo.Context,
+        rx: float,
+        ry: float,
+        rw: float,
+        rh: float,
     ) -> None:
         # Reveal screenshot inside selection (undo the dim)
         cr.save()
@@ -176,8 +181,10 @@ class SelectorWindow(Gtk.ApplicationWindow):
         cr.set_source_rgba(1.0, 1.0, 1.0, 0.25)
         cr.set_line_width(0.5)
         for t in (1 / 3, 2 / 3):
-            cr.move_to(rx + rw * t, ry);      cr.line_to(rx + rw * t, ry + rh)
-            cr.move_to(rx,          ry + rh * t); cr.line_to(rx + rw, ry + rh * t)
+            cr.move_to(rx + rw * t, ry)
+            cr.line_to(rx + rw * t, ry + rh)
+            cr.move_to(rx, ry + rh * t)
+            cr.line_to(rx + rw, ry + rh * t)
         cr.stroke()
 
         # Size label in image pixels
@@ -255,10 +262,15 @@ class SelectorWindow(Gtk.ApplicationWindow):
 # Module-level drawing helpers (no state needed)
 # ------------------------------------------------------------------
 
+
 def _draw_size_label(
     cr: cairo.Context,
-    rx: float, ry: float, rw: float, rh: float,
-    img_w: int, img_h: int,
+    rx: float,
+    ry: float,
+    rw: float,
+    rh: float,
+    img_w: int,
+    img_h: int,
 ) -> None:
     text = f" {img_w} × {img_h} "
     cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)

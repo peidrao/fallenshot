@@ -5,8 +5,20 @@ from src import tray
 
 def test_load_icon_pixmap_converts_rgba_to_argb(monkeypatch):
     class FakePB:
-        def convert(self, *_args, **_kwargs):
-            return self
+        def get_width(self):
+            return 2
+
+        def get_height(self):
+            return 1
+
+        def get_n_channels(self):
+            return 4
+
+        def get_has_alpha(self):
+            return True
+
+        def get_rowstride(self):
+            return 8
 
         def get_pixels(self):
             # RGBA: (10,20,30,40) and (1,2,3,4)
@@ -17,6 +29,31 @@ def test_load_icon_pixmap_converts_rgba_to_argb(monkeypatch):
     pixmaps = tray._load_icon_pixmap("icon.png")
     raw = bytes(pixmaps[0][2])
     assert raw == bytes([40, 10, 20, 30, 4, 1, 2, 3])
+
+
+def test_load_icon_pixmap_rgb_assumes_opaque_alpha(monkeypatch):
+    class FakePB:
+        def get_width(self):
+            return 1
+
+        def get_height(self):
+            return 1
+
+        def get_n_channels(self):
+            return 3
+
+        def get_has_alpha(self):
+            return False
+
+        def get_rowstride(self):
+            return 3
+
+        def get_pixels(self):
+            return bytes([7, 8, 9])
+
+    monkeypatch.setattr(tray.GdkPixbuf.Pixbuf, "new_from_file_at_size", staticmethod(lambda *a: FakePB()))
+    pixmaps = tray._load_icon_pixmap("icon.png")
+    assert bytes(pixmaps[0][2]) == bytes([255, 7, 8, 9])
 
 
 def test_load_icon_pixmap_failure_returns_empty(monkeypatch):

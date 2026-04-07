@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import tempfile
+
 from src import screencast
 
 
@@ -79,6 +81,17 @@ def test_on_started_sets_restore_token_and_opens_remote(monkeypatch):
 
     assert session._restore_token == "abc"
     assert opened == [55]
+
+
+def test_restore_token_is_persisted_and_loaded(monkeypatch):
+    with tempfile.TemporaryDirectory() as td:
+        monkeypatch.setenv("XDG_STATE_HOME", td)
+        s1 = screencast.ScreenCastSession()
+        s1._open_remote = lambda _node_id: None
+        s1._on_started(0, {"restore_token": "persisted", "streams": [(1, {})]})
+
+        s2 = screencast.ScreenCastSession()
+        assert s2._restore_token == "persisted"
 
 
 def test_on_new_sample_when_already_delivered_returns_ok():

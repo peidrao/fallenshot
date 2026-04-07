@@ -10,6 +10,7 @@
   ![DE](https://img.shields.io/badge/tested%20on-GNOME%2049-green?style=flat-square)
   ![Language](https://img.shields.io/badge/python-3.10%2B-yellow?style=flat-square)
   ![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)
+  ![Tests](badges/tests.svg)
 </div>
 
 ---

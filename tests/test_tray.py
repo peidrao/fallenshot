@@ -24,7 +24,11 @@ def test_load_icon_pixmap_converts_rgba_to_argb(monkeypatch):
             # RGBA: (10,20,30,40) and (1,2,3,4)
             return bytes([10, 20, 30, 40, 1, 2, 3, 4])
 
-    monkeypatch.setattr(tray.GdkPixbuf.Pixbuf, "new_from_file_at_size", staticmethod(lambda *a: FakePB()))
+    monkeypatch.setattr(
+        tray.GdkPixbuf.Pixbuf,
+        "new_from_file_at_size",
+        staticmethod(lambda *a: FakePB()),
+    )
 
     pixmaps = tray._load_icon_pixmap("icon.png")
     raw = bytes(pixmaps[0][2])
@@ -51,7 +55,11 @@ def test_load_icon_pixmap_rgb_assumes_opaque_alpha(monkeypatch):
         def get_pixels(self):
             return bytes([7, 8, 9])
 
-    monkeypatch.setattr(tray.GdkPixbuf.Pixbuf, "new_from_file_at_size", staticmethod(lambda *a: FakePB()))
+    monkeypatch.setattr(
+        tray.GdkPixbuf.Pixbuf,
+        "new_from_file_at_size",
+        staticmethod(lambda *a: FakePB()),
+    )
     pixmaps = tray._load_icon_pixmap("icon.png")
     assert bytes(pixmaps[0][2]) == bytes([255, 7, 8, 9])
 
@@ -92,7 +100,11 @@ def test_dbusmenu_eventgroup_dispatches_each_event(monkeypatch):
         on_capture5=lambda: None,
         on_quit=lambda: None,
     )
-    monkeypatch.setattr(menu, "Event", lambda item_id, event_id, data, timestamp: called.append((item_id, event_id)))
+    monkeypatch.setattr(
+        menu,
+        "Event",
+        lambda item_id, event_id, data, timestamp: called.append((item_id, event_id)),
+    )
     menu.EventGroup([(1, "clicked", None, 0), (2, "clicked", None, 0)])
     assert called == [(1, "clicked"), (2, "clicked")]
 
@@ -124,7 +136,9 @@ def test_register_tray_icon_success(monkeypatch):
 
 
 def test_register_tray_icon_failure(monkeypatch):
-    monkeypatch.setattr(tray.dbus, "SessionBus", lambda: (_ for _ in ()).throw(RuntimeError("no bus")))
+    monkeypatch.setattr(
+        tray.dbus, "SessionBus", lambda: (_ for _ in ()).throw(RuntimeError("no bus"))
+    )
 
     ok, menu, sni = tray.register_tray_icon(lambda: None, lambda: None, lambda: None)
 

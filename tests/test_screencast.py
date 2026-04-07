@@ -7,10 +7,14 @@ from src import screencast
 
 def test_is_available_reflects_gst_state(monkeypatch):
     monkeypatch.setattr(screencast, "_HAS_GST", True)
-    monkeypatch.setattr(screencast.Gst.ElementFactory, "find", staticmethod(lambda _name: object()))
+    monkeypatch.setattr(
+        screencast.Gst.ElementFactory, "find", staticmethod(lambda _name: object())
+    )
     assert screencast.is_available() is True
 
-    monkeypatch.setattr(screencast.Gst.ElementFactory, "find", staticmethod(lambda _name: None))
+    monkeypatch.setattr(
+        screencast.Gst.ElementFactory, "find", staticmethod(lambda _name: None)
+    )
     assert screencast.is_available() is False
 
 

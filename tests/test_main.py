@@ -36,7 +36,9 @@ def test_do_activate_stores_tray_refs(monkeypatch):
 def test_trigger_capture_schedules_when_idle(monkeypatch):
     app = _make_app()
     calls = []
-    monkeypatch.setattr("src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn)))
+    monkeypatch.setattr(
+        "src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn))
+    )
 
     app._trigger_capture()
 
@@ -49,7 +51,9 @@ def test_trigger_capture_ignores_when_in_progress(monkeypatch):
     app._capture_in_progress = True
 
     calls = []
-    monkeypatch.setattr("src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn)))
+    monkeypatch.setattr(
+        "src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn))
+    )
 
     app._trigger_capture()
     assert calls == []
@@ -129,7 +133,10 @@ def test_on_frame_ready_opens_selector(monkeypatch):
 def test_on_frame_ready_selector_exception_resets_flag(monkeypatch):
     app = _make_app()
     app._capture_in_progress = True
-    monkeypatch.setattr("src.main.SelectorWindow", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        "src.main.SelectorWindow",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
     app._on_frame_ready(object())
     assert app._capture_in_progress is False
 
@@ -137,6 +144,9 @@ def test_on_frame_ready_selector_exception_resets_flag(monkeypatch):
 def test_on_region_selected_overlay_exception_still_resets_flag(monkeypatch):
     app = _make_app()
     app._capture_in_progress = True
-    monkeypatch.setattr("src.main.OverlayWindow", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        "src.main.OverlayWindow",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
     app._on_region_selected(object(), 1, 2, 3, 4)
     assert app._capture_in_progress is False

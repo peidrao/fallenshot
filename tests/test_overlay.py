@@ -137,14 +137,18 @@ def test_copy_and_save_selection_noop_without_region():
 def test_render_to_surface_returns_none_without_roi():
     overlay = _make_overlay()
     overlay._region_of_interest = None
-    overlay._render_to_surface = OverlayWindow._render_to_surface.__get__(overlay, OverlayWindow)
+    overlay._render_to_surface = OverlayWindow._render_to_surface.__get__(
+        overlay, OverlayWindow
+    )
     assert overlay._render_to_surface() is None
 
 
 def test_set_tool_commits_text_with_content():
     overlay = _make_overlay()
     overlay._active_tool = "text"
-    overlay._active_shape = TextAnnotation(0, 0, text="hello", color=(1, 1, 1, 1), width=2)
+    overlay._active_shape = TextAnnotation(
+        0, 0, text="hello", color=(1, 1, 1, 1), width=2
+    )
     overlay._undo_history = [[]]
 
     overlay._set_tool("rect")
@@ -152,7 +156,10 @@ def test_set_tool_commits_text_with_content():
     assert overlay._active_tool == "rect"
     assert overlay._active_shape is None
     assert len(overlay._shapes) == 1
-    assert isinstance(overlay._shapes[0], TextAnnotation) and overlay._shapes[0].text == "hello"
+    assert (
+        isinstance(overlay._shapes[0], TextAnnotation)
+        and overlay._shapes[0].text == "hello"
+    )
     # undo snapshot kept because text was committed
     assert len(overlay._undo_history) == 1
 
@@ -191,7 +198,9 @@ def test_drag_begin_commits_in_progress_text():
     overlay._drag_begin(FakeGesture(), 10.0, 10.0)
 
     # Previous text annotation was committed
-    assert any(isinstance(s, TextAnnotation) and s.text == "hi" for s in overlay._shapes)
+    assert any(
+        isinstance(s, TextAnnotation) and s.text == "hi" for s in overlay._shapes
+    )
     # A new active shape was created
     assert isinstance(overlay._active_shape, TextAnnotation)
 

@@ -25,7 +25,9 @@ class FakePixbuf:
 
 
 def test_crop_surface_applies_bounds(monkeypatch):
-    monkeypatch.setattr(ExportManager, "_surface_to_pixbuf", staticmethod(lambda _s: FakePixbuf(40, 30)))
+    monkeypatch.setattr(
+        ExportManager, "_surface_to_pixbuf", staticmethod(lambda _s: FakePixbuf(40, 30))
+    )
 
     sub = ExportManager._crop_surface(object(), (10, 5, 100, 100))
     assert sub == (10, 5, 30, 25)
@@ -55,8 +57,13 @@ def test_copy_surface_to_clipboard_success(monkeypatch, tmp_path):
 
     run_calls = []
 
-    monkeypatch.setattr("src.export.tempfile.NamedTemporaryFile", lambda suffix, delete: FakeTemp(temp_file))
-    monkeypatch.setattr("src.export.subprocess.run", lambda *a, **k: run_calls.append((a, k)))
+    monkeypatch.setattr(
+        "src.export.tempfile.NamedTemporaryFile",
+        lambda suffix, delete: FakeTemp(temp_file),
+    )
+    monkeypatch.setattr(
+        "src.export.subprocess.run", lambda *a, **k: run_calls.append((a, k))
+    )
     monkeypatch.setattr("src.export.os.unlink", lambda p: None)
 
     ok = manager.copy_surface_to_clipboard(object(), (0, 0, 20, 20))
@@ -105,7 +112,9 @@ def test_save_surface_to_file_cancel_calls_callback(monkeypatch):
         def get_file(self):
             return None
 
-    monkeypatch.setattr("src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog())
+    monkeypatch.setattr(
+        "src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog()
+    )
     monkeypatch.setattr("src.export.Gio.File.new_for_path", lambda path: path)
 
     outputs = []
@@ -163,7 +172,9 @@ def test_save_surface_to_file_accept_adds_png_extension(monkeypatch, tmp_path):
         def savev(self, path, _fmt, _a, _b):
             saved_paths.append(path)
 
-    monkeypatch.setattr("src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog())
+    monkeypatch.setattr(
+        "src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog()
+    )
     monkeypatch.setattr("src.export.Gio.File.new_for_path", lambda path: path)
     monkeypatch.setattr(manager, "_crop_surface", lambda _surface, _sel: Crop())
 
@@ -214,7 +225,9 @@ def test_save_surface_to_file_accept_with_empty_path_calls_none(monkeypatch):
         def get_file(self):
             return self._file
 
-    monkeypatch.setattr("src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog())
+    monkeypatch.setattr(
+        "src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog()
+    )
     monkeypatch.setattr("src.export.Gio.File.new_for_path", lambda path: path)
 
     outputs = []
@@ -269,7 +282,9 @@ def test_save_surface_to_file_accept_save_error_calls_none(monkeypatch, tmp_path
         def savev(self, _path, _fmt, _a, _b):
             raise RuntimeError("disk full")
 
-    monkeypatch.setattr("src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog())
+    monkeypatch.setattr(
+        "src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog()
+    )
     monkeypatch.setattr("src.export.Gio.File.new_for_path", lambda path: path)
     monkeypatch.setattr(manager, "_crop_surface", lambda _surface, _sel: BrokenCrop())
 

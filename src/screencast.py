@@ -117,6 +117,14 @@ class ScreenCastSession:
         except OSError:
             return None
 
+    def _clear_restore_token(self) -> None:
+        self._restore_token = None
+        path = self._restore_token_path()
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
     def _save_restore_token(self, token: str) -> None:
         path = self._restore_token_path()
         try:
@@ -165,7 +173,7 @@ class ScreenCastSession:
         self._session_path = str(results["session_handle"])
         self._select_sources()
 
-    def _select_sources(self) -> None:
+    def _select_sources(self, *, with_restore_token: bool = True) -> None:
         opts: dict = {
             "handle_token": dbus.String(self._token(), variant_level=1),
             "types":        dbus.UInt32(1, variant_level=1),   # Monitor
@@ -173,9 +181,18 @@ class ScreenCastSession:
             "cursor_mode":  dbus.UInt32(2, variant_level=1),   # embedded
             "persist_mode": dbus.UInt32(2, variant_level=1),   # cross-session token
         }
-        if self._restore_token:
+        if self._restore_token and with_restore_token:
             opts["restore_token"] = dbus.String(self._restore_token, variant_level=1)
-        path = self._sc().SelectSources(dbus.ObjectPath(self._session_path), opts)
+        try:
+            path = self._sc().SelectSources(dbus.ObjectPath(self._session_path), opts)
+        except dbus.DBusException as exc:
+            if self._restore_token and "InvalidArgument" in str(exc):
+                print("[screencast] Restore token rejected by portal — clearing and retrying.")
+                self._clear_restore_token()
+                self._select_sources(with_restore_token=False)
+            else:
+                self._fail(f"SelectSources error: {exc}")
+            return
         self._watch(path, self._on_sources_selected)
 
     def _on_sources_selected(self, code: int, results: dict) -> None:

@@ -1,4 +1,4 @@
-"""Application entry point coordinating capture and annotation overlay."""
+"""Application entry point coordinating capture, selection, and annotation."""
 
 from __future__ import annotations
 
@@ -9,90 +9,104 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
+gi.require_version("GdkPixbuf", "2.0")
 
-from gi.repository import Gio, GLib, Gtk  # noqa: E402
+from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
-from .capture import ScreenCapture
 from .overlay import OverlayWindow
+from .screencast import ScreenCastSession
+from .selector import SelectorWindow
 from .tray import register_tray_icon
 
 APP_ID = "io.github.fallenshot"
 
 
 class FallenshotApp(Gtk.Application):
-    """GTK application that captures screenshots and opens the annotation overlay."""
+    """GTK application — tray icon → frame capture → region select → annotate."""
 
     def __init__(self) -> None:
         super().__init__(
             application_id=APP_ID,
             flags=Gio.ApplicationFlags.FLAGS_NONE,
         )
-        self._capture_service = ScreenCapture()
-        self._overlay_window: OverlayWindow | None = None
+        self._cast = ScreenCastSession()
         self._capture_in_progress = False
         self._tray_mode_enabled = False
 
-    def do_startup(self) -> None:
-        """Initialize application actions and shortcuts."""
-        Gtk.Application.do_startup(self)
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
 
+    def do_startup(self) -> None:
+        Gtk.Application.do_startup(self)
         quit_action = Gio.SimpleAction.new("quit", None)
         quit_action.connect("activate", lambda *_: self.quit())
         self.add_action(quit_action)
         self.set_accels_for_action("app.quit", ["Escape"])
 
     def do_activate(self) -> None:
-        """Activate the app, preferring tray icon mode when available."""
         self.hold()
-
         self._tray_mode_enabled = register_tray_icon(
-            on_capture=self._on_tray_capture,
-            on_capture5=self._on_tray_capture5,
+            on_capture=self._trigger_capture,
+            on_capture5=self._trigger_capture_delayed,
             on_quit=self.quit,
         )
-
         if not self._tray_mode_enabled:
-            print("[main] Tray indicator unavailable; starting direct capture mode.")
+            print("[main] Tray unavailable — capturing immediately.")
             GLib.timeout_add(150, self._start_capture)
 
-    def _on_tray_capture(self, *_: Any) -> None:
-        """Trigger an immediate capture from the tray icon."""
+    # ------------------------------------------------------------------
+    # Tray callbacks
+    # ------------------------------------------------------------------
+
+    def _trigger_capture(self, *_: Any) -> None:
         if self._capture_in_progress:
             return
         self._capture_in_progress = True
         GLib.timeout_add(150, self._start_capture)
 
-    def _on_tray_capture5(self, *_: Any) -> None:
-        """Trigger a capture after a 5-second delay."""
+    def _trigger_capture_delayed(self, *_: Any) -> None:
         if self._capture_in_progress:
             return
         self._capture_in_progress = True
         GLib.timeout_add(5000, self._start_capture)
 
+    # ------------------------------------------------------------------
+    # Capture → select → annotate pipeline
+    # ------------------------------------------------------------------
+
     def _start_capture(self) -> bool:
-        """Request a screenshot and keep timeout callback single-shot."""
-        self._capture_service.capture(callback=self._on_screenshot_ready)
+        self._cast.capture_frame(callback=self._on_frame_ready)
         return False
 
-    def _on_screenshot_ready(self, screenshot_pixbuf: Any) -> None:
-        """Open annotation UI when a screenshot is available."""
-        self._capture_in_progress = False
-
-        if screenshot_pixbuf is None:
-            print("[main] Screenshot capture was cancelled or failed.")
-            if not self._tray_mode_enabled:
-                self.release()
-                self.quit()
+    def _on_frame_ready(self, pixbuf: GdkPixbuf.Pixbuf | None) -> None:
+        """Frame received from PipeWire — open the region selector."""
+        if pixbuf is None:
+            print("[main] Capture failed or was cancelled.")
+            self._capture_in_progress = False
             return
 
-        if not self._tray_mode_enabled:
-            self.release()
+        selector = SelectorWindow(
+            self,
+            pixbuf,
+            on_selected=self._on_region_selected,
+            on_cancelled=self._on_selection_cancelled,
+        )
+        selector.present()
 
-        self._overlay_window = OverlayWindow(self, screenshot_pixbuf)
-        image_width = screenshot_pixbuf.get_width()
-        image_height = screenshot_pixbuf.get_height()
-        self._overlay_window.start_annotation(0, 0, image_width, image_height)
-        self._overlay_window.present()
+    def _on_region_selected(
+        self,
+        pixbuf: GdkPixbuf.Pixbuf,
+        x: int, y: int, w: int, h: int,
+    ) -> None:
+        """User confirmed a region — open the annotation overlay."""
+        self._capture_in_progress = False
+        overlay = OverlayWindow(self, pixbuf)
+        overlay.start_annotation(x, y, w, h)
+        overlay.present()
+
+    def _on_selection_cancelled(self) -> None:
+        self._capture_in_progress = False
 
 
 def run() -> None:

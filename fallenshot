@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+"""
+fallenshot — Executável principal.
+Uso: ./fallenshot
+"""
+
+import sys
+import os
+
+# Permite rodar direto do diretório do projeto sem instalar
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from src.main import run
+
+if __name__ == "__main__":
+    run()

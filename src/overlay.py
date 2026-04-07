@@ -283,7 +283,21 @@ class OverlayWindow(Gtk.ApplicationWindow):
             self._active_shape.draw(context)
         context.restore()
 
+    def _commit_active_text(self) -> None:
+        """Commit or discard the in-progress TextAnnotation when leaving text mode."""
+        if not isinstance(self._active_shape, TextAnnotation):
+            return
+        if self._active_shape.text:
+            self._shapes.append(self._active_shape)
+        elif self._undo_history:
+            # No text was typed — discard the undo snapshot pushed at drag-begin
+            self._undo_history.pop()
+        self._active_shape = None
+
     def _drag_begin(self, _gesture: Gtk.GestureDrag, start_x: float, start_y: float) -> None:
+        # If a text annotation is already in progress, commit it before starting a new shape
+        self._commit_active_text()
+
         image_x, image_y = self._window_to_image(start_x, start_y)
         color = PALETTE[self._active_color_index]
 
@@ -380,6 +394,7 @@ class OverlayWindow(Gtk.ApplicationWindow):
         return True
 
     def _set_tool(self, tool: str) -> None:
+        self._commit_active_text()
         self._active_tool = tool
         self._refresh_tool_buttons()
 

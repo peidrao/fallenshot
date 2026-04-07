@@ -26,6 +26,16 @@ def test_capture_frame_unavailable_dispatches_none(monkeypatch):
     assert results == [None]
 
 
+def test_capture_frame_starts_watchdog(monkeypatch):
+    session = screencast.ScreenCastSession()
+    monkeypatch.setattr("src.screencast.is_available", lambda: True)
+    started = []
+    session._start_watchdog = lambda: started.append(True)
+    session._create_session = lambda: None
+    session.capture_frame(lambda _pix: None)
+    assert started == [True]
+
+
 def test_dispatch_clears_signals_and_calls_callback_once():
     session = screencast.ScreenCastSession()
 
@@ -111,3 +121,12 @@ def test_fail_cleans_and_dispatches_none():
 
     assert result is False
     assert calls == ["stop", "close", ("dispatch", None)]
+
+
+def test_watchdog_timeout_triggers_fail():
+    session = screencast.ScreenCastSession()
+    failures = []
+    session._request_timeout_ms = 1234
+    session._fail = lambda reason: failures.append(reason) or False
+    session._on_watchdog_timeout()
+    assert failures == ["Request timed out after 1234 ms"]

@@ -21,6 +21,18 @@ def _make_app():
     return app
 
 
+def test_do_activate_stores_tray_refs(monkeypatch):
+    app = _make_app()
+    monkeypatch.setattr(
+        "src.main.register_tray_icon",
+        lambda **kwargs: (True, "menu_ref", "item_ref"),
+    )
+    app.do_activate()
+    assert app._tray_mode_enabled is True
+    assert app._tray_menu == "menu_ref"
+    assert app._tray_item == "item_ref"
+
+
 def test_trigger_capture_schedules_when_idle(monkeypatch):
     app = _make_app()
     calls = []
@@ -112,3 +124,19 @@ def test_on_frame_ready_opens_selector(monkeypatch):
 
     assert len(events) == 2
     assert events[1] == "present"
+
+
+def test_on_frame_ready_selector_exception_resets_flag(monkeypatch):
+    app = _make_app()
+    app._capture_in_progress = True
+    monkeypatch.setattr("src.main.SelectorWindow", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    app._on_frame_ready(object())
+    assert app._capture_in_progress is False
+
+
+def test_on_region_selected_overlay_exception_still_resets_flag(monkeypatch):
+    app = _make_app()
+    app._capture_in_progress = True
+    monkeypatch.setattr("src.main.OverlayWindow", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    app._on_region_selected(object(), 1, 2, 3, 4)
+    assert app._capture_in_progress is False

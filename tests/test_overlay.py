@@ -91,6 +91,14 @@ def test_handle_text_input_non_printable_returns_false():
     assert overlay._active_shape.text == "ab"
 
 
+def test_handle_text_input_unicode_character():
+    overlay = _make_overlay()
+    overlay._active_tool = "text"
+    overlay._active_shape = TextAnnotation(0, 0, text="", color=(1, 1, 1, 1), width=2)
+    assert overlay._handle_text_input(ord("á")) is True
+    assert overlay._active_shape.text == "á"
+
+
 def test_undo_restores_previous_shapes():
     overlay = _make_overlay()
     overlay._shapes = ["new"]

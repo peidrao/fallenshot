@@ -115,15 +115,19 @@ def test_register_tray_icon_success(monkeypatch):
     monkeypatch.setattr(tray.dbus, "Interface", lambda obj, _iface: obj)
     monkeypatch.setattr(tray, "_load_icon_pixmap", lambda _path: [])
 
-    ok = tray.register_tray_icon(lambda: None, lambda: None, lambda: None)
+    ok, menu, sni = tray.register_tray_icon(lambda: None, lambda: None, lambda: None)
 
     assert ok is True
+    assert menu is not None
+    assert sni is not None
     assert len(watcher.calls) == 1
 
 
 def test_register_tray_icon_failure(monkeypatch):
     monkeypatch.setattr(tray.dbus, "SessionBus", lambda: (_ for _ in ()).throw(RuntimeError("no bus")))
 
-    ok = tray.register_tray_icon(lambda: None, lambda: None, lambda: None)
+    ok, menu, sni = tray.register_tray_icon(lambda: None, lambda: None, lambda: None)
 
     assert ok is False
+    assert menu is None
+    assert sni is None

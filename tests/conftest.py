@@ -84,6 +84,7 @@ def _install_fake_gi() -> None:
     glib = types.SimpleNamespace(
         idle_add=lambda fn, *a, **k: fn(*a, **k),
         timeout_add=lambda _ms, fn, *a: fn(*a),
+        source_remove=lambda _source_id: None,
         get_monotonic_time=lambda: 123456,
         Bytes=types.SimpleNamespace(new=lambda b: b),
         Error=Exception,
@@ -108,6 +109,7 @@ def _install_fake_gi() -> None:
         ModifierType=_ModifierType,
         Cursor=types.SimpleNamespace(new_from_name=lambda _name: _Dummy()),
         cairo_set_source_pixbuf=lambda *_args, **_kwargs: None,
+        keyval_to_unicode=lambda keyval: keyval if keyval > 0 else 0,
     )
 
     # GdkPixbuf

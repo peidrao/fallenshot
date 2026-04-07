@@ -1,4 +1,3 @@
 # Dependencias instaladas via pip (ambiente de desenvolvimento/testes).
 pytest>=8.0.0
-genbadge[tests]>=1.1.0
 ruff>=0.4.0

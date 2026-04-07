@@ -83,6 +83,14 @@ def test_handle_text_input_backspace_enter_and_append():
     assert overlay._active_shape is None
 
 
+def test_handle_text_input_non_printable_returns_false():
+    overlay = _make_overlay()
+    overlay._active_tool = "text"
+    overlay._active_shape = TextAnnotation(0, 0, text="ab", color=(1, 1, 1, 1), width=2)
+    assert overlay._handle_text_input(10) is False
+    assert overlay._active_shape.text == "ab"
+
+
 def test_undo_restores_previous_shapes():
     overlay = _make_overlay()
     overlay._shapes = ["new"]
@@ -107,6 +115,22 @@ def test_copy_and_save_selection_flow():
     overlay._save_selection()
     assert overlay._export_manager.save_calls
     assert overlay._closed is True
+
+
+def test_copy_and_save_selection_noop_without_region():
+    overlay = _make_overlay()
+    overlay._region_of_interest = None
+    overlay._copy_selection()
+    overlay._save_selection()
+    assert overlay._export_manager.copy_calls == []
+    assert overlay._export_manager.save_calls == []
+
+
+def test_render_to_surface_returns_none_without_roi():
+    overlay = _make_overlay()
+    overlay._region_of_interest = None
+    overlay._render_to_surface = OverlayWindow._render_to_surface.__get__(overlay, OverlayWindow)
+    assert overlay._render_to_surface() is None
 
 
 def test_on_key_pressed_shortcuts(monkeypatch):

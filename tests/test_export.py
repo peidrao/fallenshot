@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import types
-
 from src.export import ExportManager
 
 
@@ -66,6 +64,14 @@ def test_copy_surface_to_clipboard_success(monkeypatch, tmp_path):
     assert ok is True
     assert cropped.saved
     assert popen_calls
+
+
+def test_copy_surface_to_clipboard_returns_false_when_crop_fails(monkeypatch):
+    manager = ExportManager(parent_window=object())
+    monkeypatch.setattr("src.export.shutil.which", lambda _cmd: "/usr/bin/wl-copy")
+    monkeypatch.setattr(manager, "_crop_surface", lambda _surface, _sel: None)
+
+    assert manager.copy_surface_to_clipboard(object(), (0, 0, 10, 10)) is False
 
 
 def test_save_surface_to_file_cancel_calls_callback(monkeypatch):
@@ -167,6 +173,110 @@ def test_save_surface_to_file_accept_adds_png_extension(monkeypatch, tmp_path):
     stored["cb"](stored["dlg"], 1)
     assert saved_paths[0].endswith(".png")
     assert outputs[0].endswith(".png")
+
+
+def test_save_surface_to_file_accept_with_empty_path_calls_none(monkeypatch):
+    manager = ExportManager(parent_window=object())
+
+    class SelectedFile:
+        def get_path(self):
+            return ""
+
+    stored = {}
+
+    class FakeDialog:
+        def __init__(self):
+            self._file = SelectedFile()
+
+        def add_button(self, *_args):
+            return None
+
+        def set_current_name(self, _name):
+            return None
+
+        def set_current_folder(self, _folder):
+            return None
+
+        def add_filter(self, _filter):
+            return None
+
+        def connect(self, _name, cb):
+            stored["cb"] = cb
+            stored["dlg"] = self
+            return 1
+
+        def present(self):
+            return None
+
+        def destroy(self):
+            return None
+
+        def get_file(self):
+            return self._file
+
+    monkeypatch.setattr("src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog())
+    monkeypatch.setattr("src.export.Gio.File.new_for_path", lambda path: path)
+
+    outputs = []
+    manager.save_surface_to_file(object(), (0, 0, 10, 10), on_done=outputs.append)
+    stored["cb"](stored["dlg"], 1)
+    assert outputs == [None]
+
+
+def test_save_surface_to_file_accept_save_error_calls_none(monkeypatch, tmp_path):
+    manager = ExportManager(parent_window=object())
+
+    class SelectedFile:
+        def __init__(self, path):
+            self._path = path
+
+        def get_path(self):
+            return self._path
+
+    stored = {}
+
+    class FakeDialog:
+        def __init__(self):
+            self._file = SelectedFile(str(tmp_path / "shot"))
+
+        def add_button(self, *_args):
+            return None
+
+        def set_current_name(self, _name):
+            return None
+
+        def set_current_folder(self, _folder):
+            return None
+
+        def add_filter(self, _filter):
+            return None
+
+        def connect(self, _name, cb):
+            stored["cb"] = cb
+            stored["dlg"] = self
+            return 1
+
+        def present(self):
+            return None
+
+        def destroy(self):
+            return None
+
+        def get_file(self):
+            return self._file
+
+    class BrokenCrop(FakePixbuf):
+        def savev(self, _path, _fmt, _a, _b):
+            raise RuntimeError("disk full")
+
+    monkeypatch.setattr("src.export.Gtk.FileChooserDialog", lambda **kwargs: FakeDialog())
+    monkeypatch.setattr("src.export.Gio.File.new_for_path", lambda path: path)
+    monkeypatch.setattr(manager, "_crop_surface", lambda _surface, _sel: BrokenCrop())
+
+    outputs = []
+    manager.save_surface_to_file(object(), (0, 0, 10, 10), on_done=outputs.append)
+    stored["cb"](stored["dlg"], 1)
+    assert outputs == [None]
 
 
 def test_surface_to_pixbuf_handles_write_failures(monkeypatch):

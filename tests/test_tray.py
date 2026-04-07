@@ -19,6 +19,15 @@ def test_load_icon_pixmap_converts_rgba_to_argb(monkeypatch):
     assert raw == bytes([40, 10, 20, 30, 4, 1, 2, 3])
 
 
+def test_load_icon_pixmap_failure_returns_empty(monkeypatch):
+    monkeypatch.setattr(
+        tray.GdkPixbuf.Pixbuf,
+        "new_from_file_at_size",
+        staticmethod(lambda *a: (_ for _ in ()).throw(RuntimeError("bad icon"))),
+    )
+    assert tray._load_icon_pixmap("icon.png") == []
+
+
 def test_dbusmenu_event_dispatches_callbacks(monkeypatch):
     calls = []
     monkeypatch.setattr(tray.GLib, "idle_add", lambda fn: calls.append(fn.__name__))
@@ -36,6 +45,19 @@ def test_dbusmenu_event_dispatches_callbacks(monkeypatch):
     menu.Event(999, "ignored", None, 0)
 
     assert len(calls) == 3
+
+
+def test_dbusmenu_eventgroup_dispatches_each_event(monkeypatch):
+    called = []
+    menu = tray._DbusMenu(
+        tray.dbus.SessionBus(),
+        on_capture=lambda: None,
+        on_capture5=lambda: None,
+        on_quit=lambda: None,
+    )
+    monkeypatch.setattr(menu, "Event", lambda item_id, event_id, data, timestamp: called.append((item_id, event_id)))
+    menu.EventGroup([(1, "clicked", None, 0), (2, "clicked", None, 0)])
+    assert called == [(1, "clicked"), (2, "clicked")]
 
 
 def test_register_tray_icon_success(monkeypatch):

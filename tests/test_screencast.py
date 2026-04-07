@@ -60,6 +60,15 @@ def test_on_started_without_streams_fails(monkeypatch):
     assert failures == ["No streams in Start response"]
 
 
+def test_on_started_with_error_code_fails():
+    session = screencast.ScreenCastSession()
+    failures = []
+    session._fail = lambda reason: failures.append(reason)
+
+    session._on_started(2, {})
+    assert failures == ["Start failed (code=2)"]
+
+
 def test_on_started_sets_restore_token_and_opens_remote(monkeypatch):
     session = screencast.ScreenCastSession()
 
@@ -70,3 +79,22 @@ def test_on_started_sets_restore_token_and_opens_remote(monkeypatch):
 
     assert session._restore_token == "abc"
     assert opened == [55]
+
+
+def test_on_new_sample_when_already_delivered_returns_ok():
+    session = screencast.ScreenCastSession()
+    session._frame_delivered = True
+    assert session._on_new_sample(object()) == screencast.Gst.FlowReturn.OK
+
+
+def test_fail_cleans_and_dispatches_none():
+    session = screencast.ScreenCastSession()
+    calls = []
+    session._stop_pipeline = lambda: calls.append("stop")
+    session._close_session = lambda: calls.append("close")
+    session._dispatch = lambda pix: calls.append(("dispatch", pix))
+
+    result = session._fail("oops")
+
+    assert result is False
+    assert calls == ["stop", "close", ("dispatch", None)]

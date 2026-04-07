@@ -59,6 +59,19 @@ def test_drag_end_clears_small_selection():
     assert selector._area.queued == 1
 
 
+def test_drag_update_ignores_invalid_start_point():
+    selector = _make_selector()
+    selector._sel_end = None
+
+    class FakeGesture:
+        def get_start_point(self):
+            return (False, 10, 10)
+
+    selector._drag_update(FakeGesture(), 5, 5)
+    assert selector._sel_end is None
+    assert selector._area.queued == 0
+
+
 def test_confirm_clamps_and_invokes_callback():
     selector = _make_selector()
     selector._scale = 1.0
@@ -76,6 +89,22 @@ def test_confirm_clamps_and_invokes_callback():
     assert selected[0][1:] == (0, 0, 200, 100)
 
 
+def test_confirm_ignores_too_small_image_selection():
+    selector = _make_selector()
+    selector._scale = 1000.0
+    selector._off_x = 0.0
+    selector._off_y = 0.0
+    selector._sel_start = (0.0, 0.0)
+    selector._sel_end = (0.1, 0.1)
+
+    selected = []
+    selector._on_selected = lambda *args: selected.append(args)
+
+    selector._confirm()
+    assert selected == []
+    assert selector._closed is False
+
+
 def test_on_key_escape_closes_and_calls_cancelled():
     selector = _make_selector()
     cancelled = []
@@ -86,3 +115,9 @@ def test_on_key_escape_closes_and_calls_cancelled():
     assert handled is True
     assert selector._closed is True
     assert cancelled == [True]
+
+
+def test_on_key_non_escape_returns_false():
+    selector = _make_selector()
+    selector._on_cancelled = lambda: None
+    assert selector._on_key(object(), 65, 0, 0) is False

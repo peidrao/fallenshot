@@ -28,6 +28,7 @@ _PORTAL      = "org.freedesktop.portal.Desktop"
 _PORTAL_PATH = "/org/freedesktop/portal/desktop"
 _SC_IFACE    = "org.freedesktop.portal.ScreenCast"
 _SESS_IFACE  = "org.freedesktop.portal.Session"
+_DEFAULT_CAPTURE_WARMUP_MS = 350
 
 FrameCallback = Callable[[GdkPixbuf.Pixbuf | None], None]
 
@@ -57,6 +58,7 @@ class ScreenCastSession:
         self._pipeline: Gst.Pipeline | None = None
         self._signals: list = []
         self._frame_delivered = False
+        self._capture_warmup_ms = self._read_capture_warmup_ms()
 
     # ------------------------------------------------------------------
     # Public
@@ -78,6 +80,15 @@ class ScreenCastSession:
 
     def _token(self) -> str:
         return f"fs{GLib.get_monotonic_time()}"
+
+    @staticmethod
+    def _read_capture_warmup_ms() -> int:
+        raw = os.environ.get("FALLENSHOT_CAPTURE_WARMUP_MS", str(_DEFAULT_CAPTURE_WARMUP_MS))
+        try:
+            value = int(raw)
+        except ValueError:
+            return _DEFAULT_CAPTURE_WARMUP_MS
+        return max(0, value)
 
     @staticmethod
     def _restore_token_path() -> str:
@@ -158,7 +169,11 @@ class ScreenCastSession:
         if not streams:
             return self._fail("No streams in Start response")
         node_id = int(streams[0][0])
+        GLib.timeout_add(self._capture_warmup_ms, self._open_remote_after_warmup, node_id)
+
+    def _open_remote_after_warmup(self, node_id: int) -> bool:
         self._open_remote(node_id)
+        return False
 
     # ------------------------------------------------------------------
     # PipeWire / GStreamer

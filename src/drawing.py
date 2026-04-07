@@ -1,150 +1,197 @@
-"""
-drawing.py — Formas anotáveis usando Cairo.
+"""Drawing primitives used by the annotation overlay."""
 
-Cada shape tem um método draw(cr) e from_drag(x1,y1,x2,y2).
-"""
+from __future__ import annotations
+
+import math
+from abc import ABC, abstractmethod
 
 import cairo
-import math
 
 
-class Shape:
-    def __init__(self, color=(1.0, 0.2, 0.2, 1.0), width=2.5):
+class Shape(ABC):
+    """Base contract for drawable annotations."""
+
+    def __init__(self, color: tuple[float, float, float, float], width: float) -> None:
         self.color = color
         self.width = width
 
-    def _apply_style(self, cr):
-        cr.set_source_rgba(*self.color)
-        cr.set_line_width(self.width)
-        cr.set_line_cap(cairo.LINE_CAP_ROUND)
-        cr.set_line_join(cairo.LINE_JOIN_ROUND)
+    def _apply_style(self, context: cairo.Context) -> None:
+        """Apply stroke style shared by all shape types."""
+        context.set_source_rgba(*self.color)
+        context.set_line_width(self.width)
+        context.set_line_cap(cairo.LINE_CAP_ROUND)
+        context.set_line_join(cairo.LINE_JOIN_ROUND)
 
-    def draw(self, cr):
-        raise NotImplementedError
+    @abstractmethod
+    def draw(self, context: cairo.Context) -> None:
+        """Draw the shape into the provided Cairo context."""
 
-    def update(self, x, y):
-        raise NotImplementedError
+    @abstractmethod
+    def update(self, x: float, y: float) -> None:
+        """Update shape geometry from pointer interaction."""
 
 
 class Rectangle(Shape):
-    def __init__(self, x1, y1, x2=None, y2=None, **kw):
-        super().__init__(**kw)
+    """Axis-aligned rectangle defined by two corner points."""
+
+    def __init__(
+        self,
+        x1: float,
+        y1: float,
+        x2: float | None = None,
+        y2: float | None = None,
+        **style: object,
+    ) -> None:
+        super().__init__(**style)
         self.x1 = x1
         self.y1 = y1
-        self.x2 = x2 if x2 is not None else x1
-        self.y2 = y2 if y2 is not None else y1
+        self.x2 = x1 if x2 is None else x2
+        self.y2 = y1 if y2 is None else y2
 
-    def update(self, x, y):
+    def update(self, x: float, y: float) -> None:
         self.x2 = x
         self.y2 = y
 
-    def draw(self, cr):
+    def draw(self, context: cairo.Context) -> None:
         x = min(self.x1, self.x2)
         y = min(self.y1, self.y2)
-        w = abs(self.x2 - self.x1)
-        h = abs(self.y2 - self.y1)
-        if w < 1 or h < 1:
+        width = abs(self.x2 - self.x1)
+        height = abs(self.y2 - self.y1)
+
+        if width < 1 or height < 1:
             return
-        self._apply_style(cr)
-        cr.rectangle(x, y, w, h)
-        cr.stroke()
+
+        self._apply_style(context)
+        context.rectangle(x, y, width, height)
+        context.stroke()
 
 
 class Line(Shape):
-    def __init__(self, x1, y1, x2=None, y2=None, **kw):
-        super().__init__(**kw)
+    """Straight line segment between two points."""
+
+    def __init__(
+        self,
+        x1: float,
+        y1: float,
+        x2: float | None = None,
+        y2: float | None = None,
+        **style: object,
+    ) -> None:
+        super().__init__(**style)
         self.x1 = x1
         self.y1 = y1
-        self.x2 = x2 if x2 is not None else x1
-        self.y2 = y2 if y2 is not None else y1
+        self.x2 = x1 if x2 is None else x2
+        self.y2 = y1 if y2 is None else y2
 
-    def update(self, x, y):
+    def update(self, x: float, y: float) -> None:
         self.x2 = x
         self.y2 = y
 
-    def draw(self, cr):
-        self._apply_style(cr)
-        cr.move_to(self.x1, self.y1)
-        cr.line_to(self.x2, self.y2)
-        cr.stroke()
+    def draw(self, context: cairo.Context) -> None:
+        self._apply_style(context)
+        context.move_to(self.x1, self.y1)
+        context.line_to(self.x2, self.y2)
+        context.stroke()
 
 
 class Arrow(Shape):
-    ARROW_HEAD = 16  # pixels
+    """Line segment with an arrow head at the end point."""
 
-    def __init__(self, x1, y1, x2=None, y2=None, **kw):
-        super().__init__(**kw)
+    ARROW_HEAD_LENGTH = 16
+    ARROW_HEAD_ANGLE = 0.4
+
+    def __init__(
+        self,
+        x1: float,
+        y1: float,
+        x2: float | None = None,
+        y2: float | None = None,
+        **style: object,
+    ) -> None:
+        super().__init__(**style)
         self.x1 = x1
         self.y1 = y1
-        self.x2 = x2 if x2 is not None else x1
-        self.y2 = y2 if y2 is not None else y1
+        self.x2 = x1 if x2 is None else x2
+        self.y2 = y1 if y2 is None else y2
 
-    def update(self, x, y):
+    def update(self, x: float, y: float) -> None:
         self.x2 = x
         self.y2 = y
 
-    def draw(self, cr):
-        dx = self.x2 - self.x1
-        dy = self.y2 - self.y1
-        length = math.hypot(dx, dy)
+    def draw(self, context: cairo.Context) -> None:
+        delta_x = self.x2 - self.x1
+        delta_y = self.y2 - self.y1
+        length = math.hypot(delta_x, delta_y)
         if length < 4:
             return
 
-        self._apply_style(cr)
+        self._apply_style(context)
+        context.move_to(self.x1, self.y1)
+        context.line_to(self.x2, self.y2)
+        context.stroke()
 
-        # Linha principal
-        cr.move_to(self.x1, self.y1)
-        cr.line_to(self.x2, self.y2)
-        cr.stroke()
-
-        # Ponta da seta
-        angle = math.atan2(dy, dx)
-        a = self.ARROW_HEAD
-        for side in (+0.4, -0.4):
-            ax = self.x2 - a * math.cos(angle - side)
-            ay = self.y2 - a * math.sin(angle - side)
-            cr.move_to(self.x2, self.y2)
-            cr.line_to(ax, ay)
-        cr.stroke()
+        angle = math.atan2(delta_y, delta_x)
+        for side in (self.ARROW_HEAD_ANGLE, -self.ARROW_HEAD_ANGLE):
+            tip_x = self.x2 - self.ARROW_HEAD_LENGTH * math.cos(angle - side)
+            tip_y = self.y2 - self.ARROW_HEAD_LENGTH * math.sin(angle - side)
+            context.move_to(self.x2, self.y2)
+            context.line_to(tip_x, tip_y)
+        context.stroke()
 
 
 class TextAnnotation(Shape):
-    def __init__(self, x, y, text="", font_size=18, **kw):
-        super().__init__(**kw)
+    """Text label anchored at a fixed image position."""
+
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        text: str = "",
+        font_size: int = 18,
+        **style: object,
+    ) -> None:
+        super().__init__(**style)
         self.x = x
         self.y = y
         self.text = text
         self.font_size = font_size
 
-    def update(self, x, y):
-        pass  # texto não é arrastado
+    def update(self, x: float, y: float) -> None:
+        """Text annotations keep their anchor point after creation."""
+        return
 
-    def draw(self, cr):
+    def draw(self, context: cairo.Context) -> None:
         if not self.text:
             return
-        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        cr.set_font_size(self.font_size)
 
-        # Sombra
-        cr.set_source_rgba(0, 0, 0, 0.6)
-        cr.move_to(self.x + 1, self.y + 1)
-        cr.show_text(self.text)
+        context.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        context.set_font_size(self.font_size)
 
-        # Texto
-        self._apply_style(cr)
-        cr.move_to(self.x, self.y)
-        cr.show_text(self.text)
+        context.set_source_rgba(0, 0, 0, 0.6)
+        context.move_to(self.x + 1, self.y + 1)
+        context.show_text(self.text)
+
+        self._apply_style(context)
+        context.move_to(self.x, self.y)
+        context.show_text(self.text)
 
 
-def make_shape(tool, x, y, color, width):
-    """Factory: cria a shape correta para o tool ativo."""
-    kw = dict(color=color, width=width)
-    if tool == "rect":
-        return Rectangle(x, y, **kw)
-    elif tool == "line":
-        return Line(x, y, **kw)
-    elif tool == "arrow":
-        return Arrow(x, y, **kw)
-    elif tool == "text":
-        return TextAnnotation(x, y, **kw)
-    return None
+def make_shape(
+    tool: str,
+    x: float,
+    y: float,
+    color: tuple[float, float, float, float],
+    width: float,
+) -> Shape | None:
+    """Instantiate a shape for the selected drawing tool."""
+    style = {"color": color, "width": width}
+    shape_factories = {
+        "rect": Rectangle,
+        "line": Line,
+        "arrow": Arrow,
+        "text": TextAnnotation,
+    }
+    shape_type = shape_factories.get(tool)
+    if shape_type is None:
+        return None
+    return shape_type(x, y, **style)

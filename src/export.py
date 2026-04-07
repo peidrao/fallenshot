@@ -1,137 +1,175 @@
-"""
-export.py — Exportação: clipboard Wayland nativo e salvar PNG.
-"""
+"""Clipboard and file export utilities for annotated screenshots."""
+
+from __future__ import annotations
 
 import io
 import os
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Callable
 from datetime import datetime
 
+import cairo
 import gi
+
+
 gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 
-from gi.repository import Gdk, GdkPixbuf, Gtk, Gio
+from gi.repository import GdkPixbuf, Gio, Gtk
+
+Selection = tuple[int, int, int, int]
+SaveCallback = Callable[[str | None], None]
 
 
 class ExportManager:
-    def __init__(self, parent_window: Gtk.Window):
-        self._parent = parent_window
+    """Handle clipboard copy and PNG saving for rendered screenshot surfaces."""
 
-    # ------------------------------------------------------------------
-    # Clipboard
-    # ------------------------------------------------------------------
+    def __init__(self, parent_window: Gtk.Window) -> None:
+        self._parent_window = parent_window
 
-    def copy_surface_to_clipboard(self, surface, selection):
+    def copy_surface_to_clipboard(
+        self,
+        surface: cairo.ImageSurface,
+        selection: Selection,
+    ) -> bool:
         """
-        Copia a região `selection` para o clipboard via wl-copy.
-        Usa wl-copy (wl-clipboard) que persiste mesmo após o app fechar.
+        Copy a selection from a rendered surface to the Wayland clipboard.
+
+        Args:
+            surface: Rendered screenshot image surface.
+            selection: ``(x, y, width, height)`` crop rectangle on the surface.
+
+        Returns:
+            bool: ``True`` when the clipboard operation was started successfully.
         """
-        if not shutil.which("wl-copy"):
-            print("[export] wl-copy não encontrado. Instale: sudo apt install wl-clipboard")
+        if shutil.which("wl-copy") is None:
+            print("[export] wl-copy is not available; install wl-clipboard.")
             return False
 
-        x, y, w, h = (int(v) for v in selection)
-
-        buf = io.BytesIO()
-        surface.write_to_png(buf)
-        buf.seek(0)
-
-        loader = GdkPixbuf.PixbufLoader.new_with_type("png")
-        loader.write(buf.read())
-        loader.close()
-        full_pixbuf = loader.get_pixbuf()
-
-        w = min(w, full_pixbuf.get_width() - x)
-        h = min(h, full_pixbuf.get_height() - y)
-        if w <= 0 or h <= 0:
+        cropped_image = self._crop_surface(surface, selection)
+        if cropped_image is None:
             return False
 
-        cropped = full_pixbuf.new_subpixbuf(x, y, w, h)
-
-        # Salva em arquivo temporário e envia para wl-copy
-        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        temporary_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
-            cropped.savev(tmp.name, "png", [], [])
-            tmp.close()
-            with open(tmp.name, "rb") as f:
+            cropped_image.savev(temporary_file.name, "png", [], [])
+            temporary_file.close()
+            with open(temporary_file.name, "rb") as image_stream:
                 subprocess.Popen(
                     ["wl-copy", "--type", "image/png"],
-                    stdin=f,
+                    stdin=image_stream,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
         finally:
-            os.unlink(tmp.name)
+            os.unlink(temporary_file.name)
 
         return True
 
-    # ------------------------------------------------------------------
-    # Salvar arquivo — nome automático com timestamp, fecha o app após salvar
-    # ------------------------------------------------------------------
-
-    def save_surface_to_file(self, surface, selection, on_done=None):
+    def save_surface_to_file(
+        self,
+        surface: cairo.ImageSurface,
+        selection: Selection,
+        on_done: SaveCallback | None = None,
+    ) -> None:
         """
-        Abre FileChooserDialog com nome sugerido fallenshot-TIMESTAMP.png.
-        Pasta padrão: ~/Pictures/Screenshots.
+        Open a save dialog and persist the selected screenshot region as PNG.
+
+        Args:
+            surface: Rendered screenshot image surface.
+            selection: ``(x, y, width, height)`` crop rectangle on the surface.
+            on_done: Optional callback receiving saved file path or ``None``.
         """
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        default_name = f"fallenshot-{timestamp}.png"
+        default_filename = f"fallenshot-{timestamp}.png"
 
-        save_dir = os.path.expanduser("~/Pictures/Screenshots")
-        os.makedirs(save_dir, exist_ok=True)
+        default_directory = os.path.expanduser("~/Pictures/Screenshots")
+        os.makedirs(default_directory, exist_ok=True)
 
-        dialog = Gtk.FileChooserDialog(
-            title="Salvar screenshot",
-            transient_for=self._parent,
+        save_dialog = Gtk.FileChooserDialog(
+            title="Save screenshot",
+            transient_for=self._parent_window,
             action=Gtk.FileChooserAction.SAVE,
         )
-        dialog.add_button("_Cancelar", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Salvar", Gtk.ResponseType.ACCEPT)
-        dialog.set_current_name(default_name)
-        dialog.set_current_folder(Gio.File.new_for_path(save_dir))
+        save_dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
+        save_dialog.add_button("_Save", Gtk.ResponseType.ACCEPT)
+        save_dialog.set_current_name(default_filename)
+        save_dialog.set_current_folder(Gio.File.new_for_path(default_directory))
 
         png_filter = Gtk.FileFilter()
         png_filter.set_name("PNG images")
         png_filter.add_mime_type("image/png")
-        dialog.add_filter(png_filter)
+        save_dialog.add_filter(png_filter)
 
-        def _on_response(dlg, response):
-            dlg.destroy()
+        def on_dialog_response(dialog: Gtk.FileChooserDialog, response: Gtk.ResponseType) -> None:
+            dialog.destroy()
             if response != Gtk.ResponseType.ACCEPT:
-                if on_done:
+                if on_done is not None:
                     on_done(None)
                 return
 
-            path = dlg.get_file().get_path()
-            if not path.endswith(".png"):
-                path += ".png"
+            selected_file = dialog.get_file()
+            if selected_file is None:
+                if on_done is not None:
+                    on_done(None)
+                return
+
+            output_path = selected_file.get_path() or ""
+            if not output_path:
+                if on_done is not None:
+                    on_done(None)
+                return
+
+            if not output_path.endswith(".png"):
+                output_path += ".png"
 
             try:
-                x, y, w, h = (int(v) for v in selection)
-                buf = io.BytesIO()
-                surface.write_to_png(buf)
-                buf.seek(0)
-
-                loader = GdkPixbuf.PixbufLoader.new_with_type("png")
-                loader.write(buf.read())
-                loader.close()
-                full = loader.get_pixbuf()
-
-                w = min(w, full.get_width() - x)
-                h = min(h, full.get_height() - y)
-                cropped = full.new_subpixbuf(x, y, w, h)
-                cropped.savev(path, "png", [], [])
-
-                if on_done:
-                    on_done(path)
-            except Exception as e:
-                print(f"[export] Erro ao salvar: {e}")
-                if on_done:
+                cropped_image = self._crop_surface(surface, selection)
+                if cropped_image is None:
+                    raise ValueError("Invalid crop selection.")
+                cropped_image.savev(output_path, "png", [], [])
+                if on_done is not None:
+                    on_done(output_path)
+            except Exception as error:
+                print(f"[export] Failed to save screenshot: {error}")
+                if on_done is not None:
                     on_done(None)
 
-        dialog.connect("response", _on_response)
-        dialog.present()
+        save_dialog.connect("response", on_dialog_response)
+        save_dialog.present()
+
+    @staticmethod
+    def _crop_surface(
+        surface: cairo.ImageSurface,
+        selection: Selection,
+    ) -> GdkPixbuf.Pixbuf | None:
+        """Convert a Cairo surface to a pixbuf and return a bounded crop."""
+        x, y, width, height = selection
+        source_image = ExportManager._surface_to_pixbuf(surface)
+        if source_image is None:
+            return None
+
+        bounded_width = min(width, source_image.get_width() - x)
+        bounded_height = min(height, source_image.get_height() - y)
+        if bounded_width <= 0 or bounded_height <= 0:
+            return None
+
+        return source_image.new_subpixbuf(x, y, bounded_width, bounded_height)
+
+    @staticmethod
+    def _surface_to_pixbuf(surface: cairo.ImageSurface) -> GdkPixbuf.Pixbuf | None:
+        """Encode a Cairo surface as PNG and load it into a pixbuf."""
+        png_buffer = io.BytesIO()
+        try:
+            surface.write_to_png(png_buffer)
+            png_buffer.seek(0)
+
+            loader = GdkPixbuf.PixbufLoader.new_with_type("png")
+            loader.write(png_buffer.read())
+            loader.close()
+            return loader.get_pixbuf()
+        except Exception as error:
+            print(f"[export] Failed to convert surface to pixbuf: {error}")
+            return None

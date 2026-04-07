@@ -83,8 +83,15 @@ sudo apt install \
 
 ### Python packages
 
-All GTK/GLib bindings come from the system packages above.  
-No `pip install` required.
+For app runtime, GTK/GLib bindings come from system packages above.
+
+For development/tests:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ---
 

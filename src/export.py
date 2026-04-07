@@ -57,11 +57,12 @@ class ExportManager:
             cropped_image.savev(temporary_file.name, "png", [], [])
             temporary_file.close()
             with open(temporary_file.name, "rb") as image_stream:
-                subprocess.Popen(
+                subprocess.run(
                     ["wl-copy", "--type", "image/png"],
                     stdin=image_stream,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
+                    check=False,
                 )
         finally:
             os.unlink(temporary_file.name)

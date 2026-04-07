@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Fallenshot
+Comment=Ferramenta de screenshot para Wayland
+Exec=fallenshot
+Icon=fallenshot
+Terminal=false
+Type=Application
+Categories=Graphics;Utility;
+Keywords=screenshot;captura;anotação;wayland;
+StartupNotify=false

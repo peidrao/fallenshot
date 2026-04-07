@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.fallenshot</id>
+
+  <name>Fallenshot</name>
+  <summary>Wayland-native screenshot annotation tool for GNOME</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <description>
+    <p>
+      Fallenshot is a lightweight screenshot annotation tool built specifically
+      for Wayland on GNOME. It uses xdg-desktop-portal to capture your screen
+      natively — no XWayland, no screen grabbing hacks.
+    </p>
+    <p>
+      After capturing, a fullscreen editor opens where you can draw rectangles,
+      lines, arrows and add text directly on the screenshot. When done, copy to
+      clipboard or save as PNG.
+    </p>
+    <ul>
+      <li>Wayland-native capture via xdg-desktop-portal</li>
+      <li>Rectangle, Line, Arrow and Text annotation tools</li>
+      <li>6 colors and two stroke thicknesses</li>
+      <li>Undo support</li>
+      <li>Copy to clipboard (wl-copy)</li>
+      <li>Save as PNG with custom filename and location</li>
+      <li>Auto-generated filename with timestamp</li>
+      <li>Keyboard shortcuts for all actions</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.fallenshot.desktop</launchable>
+
+  <url type="homepage">https://github.com/SEU_USUARIO/fallenshot</url>
+  <url type="bugtracker">https://github.com/SEU_USUARIO/fallenshot/issues</url>
+
+  <developer id="io.github.fallenshot">
+    <name>Pedro Fonseca</name>
+  </developer>
+
+  <provides>
+    <binary>fallenshot</binary>
+  </provides>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+    <internet>offline-only</internet>
+  </requires>
+
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+
+  <categories>
+    <category>Graphics</category>
+    <category>Utility</category>
+  </categories>
+
+  <keywords>
+    <keyword>screenshot</keyword>
+    <keyword>annotation</keyword>
+    <keyword>wayland</keyword>
+    <keyword>capture</keyword>
+    <keyword>draw</keyword>
+  </keywords>
+
+  <releases>
+    <release version="0.1.0" date="2026-04-07">
+      <description>
+        <p>Initial release of Fallenshot.</p>
+        <ul>
+          <li>Wayland-native screenshot capture via xdg-desktop-portal</li>
+          <li>Annotation tools: rectangle, line, arrow, text</li>
+          <li>Copy to clipboard and save as PNG</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+
+</component>

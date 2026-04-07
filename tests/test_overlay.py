@@ -141,6 +141,61 @@ def test_render_to_surface_returns_none_without_roi():
     assert overlay._render_to_surface() is None
 
 
+def test_set_tool_commits_text_with_content():
+    overlay = _make_overlay()
+    overlay._active_tool = "text"
+    overlay._active_shape = TextAnnotation(0, 0, text="hello", color=(1, 1, 1, 1), width=2)
+    overlay._undo_history = [[]]
+
+    overlay._set_tool("rect")
+
+    assert overlay._active_tool == "rect"
+    assert overlay._active_shape is None
+    assert len(overlay._shapes) == 1
+    assert isinstance(overlay._shapes[0], TextAnnotation) and overlay._shapes[0].text == "hello"
+    # undo snapshot kept because text was committed
+    assert len(overlay._undo_history) == 1
+
+
+def test_set_tool_discards_empty_text_and_pops_undo():
+    overlay = _make_overlay()
+    overlay._active_tool = "text"
+    overlay._active_shape = TextAnnotation(0, 0, text="", color=(1, 1, 1, 1), width=2)
+    overlay._undo_history = [[]]  # snapshot pushed at drag-begin
+
+    overlay._set_tool("rect")
+
+    assert overlay._active_tool == "rect"
+    assert overlay._active_shape is None
+    assert overlay._shapes == []
+    # undo snapshot was popped because nothing was typed
+    assert overlay._undo_history == []
+
+
+def test_drag_begin_commits_in_progress_text():
+    overlay = _make_overlay()
+    overlay._region_of_interest = (0, 0, 300, 200)
+    overlay._scale = 1.0
+    overlay._offset_x = 0.0
+    overlay._offset_y = 0.0
+    overlay._roi_x = 0
+    overlay._roi_y = 0
+    overlay._active_tool = "text"
+    overlay._active_shape = TextAnnotation(5, 5, text="hi", color=(1, 1, 1, 1), width=2)
+    overlay._undo_history = [[]]
+
+    class FakeGesture:
+        def get_start_point(self):
+            return True, 10.0, 10.0
+
+    overlay._drag_begin(FakeGesture(), 10.0, 10.0)
+
+    # Previous text annotation was committed
+    assert any(isinstance(s, TextAnnotation) and s.text == "hi" for s in overlay._shapes)
+    # A new active shape was created
+    assert isinstance(overlay._active_shape, TextAnnotation)
+
+
 def test_on_key_pressed_shortcuts(monkeypatch):
     overlay = _make_overlay()
 

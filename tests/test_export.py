@@ -53,17 +53,17 @@ def test_copy_surface_to_clipboard_success(monkeypatch, tmp_path):
         def close(self):
             return None
 
-    popen_calls = []
+    run_calls = []
 
     monkeypatch.setattr("src.export.tempfile.NamedTemporaryFile", lambda suffix, delete: FakeTemp(temp_file))
-    monkeypatch.setattr("src.export.subprocess.Popen", lambda *a, **k: popen_calls.append((a, k)))
+    monkeypatch.setattr("src.export.subprocess.run", lambda *a, **k: run_calls.append((a, k)))
     monkeypatch.setattr("src.export.os.unlink", lambda p: None)
 
     ok = manager.copy_surface_to_clipboard(object(), (0, 0, 20, 20))
 
     assert ok is True
     assert cropped.saved
-    assert popen_calls
+    assert run_calls
 
 
 def test_copy_surface_to_clipboard_returns_false_when_crop_fails(monkeypatch):

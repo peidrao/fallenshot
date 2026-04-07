@@ -1,6 +1,6 @@
 {
   "pythonPath": "/usr/bin/python3",
-  "typeCheckingMode": "off",
+  "typeCheckingMode": "basic",
   "reportMissingImports": "none",
   "reportMissingModuleSource": "none",
   "reportUnusedParameter": "none"

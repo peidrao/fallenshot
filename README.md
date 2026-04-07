@@ -98,7 +98,7 @@ pip install -r requirements.txt
 ## Installation
 
 ```bash
-git clone https://github.com/your-user/fallenshot.git
+git clone https://github.com/peidrao/fallenshot.git
 cd fallenshot
 ./install.sh
 ```

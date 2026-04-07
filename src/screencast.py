@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Callable
+from collections.abc import Callable
 
 import dbus
 import dbus.mainloop.glib
@@ -118,7 +118,7 @@ class ScreenCastSession:
     def _load_restore_token(self) -> str | None:
         path = self._restore_token_path()
         try:
-            with open(path, "r", encoding="utf-8") as token_file:
+            with open(path, encoding="utf-8") as token_file:
                 token = token_file.read().strip()
                 return token or None
         except OSError:

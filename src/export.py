@@ -13,7 +13,6 @@ from datetime import datetime
 import cairo
 import gi
 
-
 gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 

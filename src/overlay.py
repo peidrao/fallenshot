@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 import cairo
 import gi
 
-
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -80,7 +79,7 @@ class OverlayWindow(Gtk.ApplicationWindow):
     }
 
     def __init__(
-        self, app: "FallenshotApp", screenshot_pixbuf: GdkPixbuf.Pixbuf
+        self, app: FallenshotApp, screenshot_pixbuf: GdkPixbuf.Pixbuf
     ) -> None:
         """
         Build the overlay window around the provided screenshot image.

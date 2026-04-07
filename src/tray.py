@@ -7,12 +7,12 @@ Works with GNOME Shell + AppIndicator extension, without GTK3 dependency.
 from __future__ import annotations
 
 import os
-from typing import Callable
+from collections.abc import Callable
 
 import dbus
-import dbus.service
 import dbus.mainloop.glib
-from gi.repository import GLib, GdkPixbuf
+import dbus.service
+from gi.repository import GdkPixbuf, GLib
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 

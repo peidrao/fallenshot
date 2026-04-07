@@ -70,7 +70,10 @@ sudo apt install \
   python3-dbus \
   gir1.2-gtk-4.0 \
   gir1.2-gdkpixbuf-2.0 \
-  gir1.2-ayatanaappindicator3-0.1 \
+  gir1.2-gstreamer-1.0 \
+  gir1.2-gst-plugins-base-1.0 \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-pipewire \
   xdg-desktop-portal \
   xdg-desktop-portal-gnome \
   wl-clipboard

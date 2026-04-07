@@ -47,4 +47,19 @@ jobs:
         run: ruff check src tests
 
       - name: Run unit tests
-        run: pytest -q --tb=short
+        run: pytest -q --tb=short --junitxml=report.xml
+
+      - name: Generate tests badge
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          mkdir -p badges
+          genbadge tests -i report.xml -o badges/tests.svg
+
+      - name: Commit badge
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add badges/tests.svg
+          git diff --cached --quiet || git commit -m "ci: update tests badge [skip ci]"
+          git push

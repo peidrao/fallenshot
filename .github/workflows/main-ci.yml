@@ -21,11 +21,24 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install runtime system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-gi \
+            python3-gi-cairo \
+            python3-dbus \
+            gir1.2-gtk-4.0 \
+            gir1.2-gdkpixbuf-2.0
+
       - name: Compile source files
         run: python -m compileall -q src
 
+      - name: Runtime smoke import (system Python + GI/DBus)
+        run: /usr/bin/python3 -c "import gi, dbus; from src.main import FallenshotApp; print('ok')"
+
       - name: Install test dependencies
-        run: python -m pip install --upgrade pip pytest
+        run: python -m pip install --upgrade pip -r requirements.txt
 
       - name: Run unit tests
         run: pytest -q

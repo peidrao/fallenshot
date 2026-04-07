@@ -230,13 +230,15 @@ class _StatusNotifierItem(dbus.service.Object):
         pass
 
 
-def register_tray_icon(on_capture: Callable,
-                       on_capture5: Callable,
-                       on_quit: Callable) -> bool:
+def register_tray_icon(
+    on_capture: Callable,
+    on_capture5: Callable,
+    on_quit: Callable,
+) -> tuple[bool, _DbusMenu | None, _StatusNotifierItem | None]:
     """
     Register the system tray icon via StatusNotifierWatcher.
 
-    Returns True if successfully registered, False otherwise.
+    Returns registration status and strong references to tray DBus objects.
     """
     try:
         bus = dbus.SessionBus()
@@ -247,7 +249,7 @@ def register_tray_icon(on_capture: Callable,
         )
         icon_pixmap = _load_icon_pixmap(icon_path)
 
-        _DbusMenu(bus, on_capture, on_capture5, on_quit)
+        menu = _DbusMenu(bus, on_capture, on_capture5, on_quit)
         sni = _StatusNotifierItem(bus, icon_pixmap)
 
         watcher = bus.get_object(_WATCHER_NAME, _WATCHER_PATH)
@@ -256,7 +258,7 @@ def register_tray_icon(on_capture: Callable,
         )
 
         print("[tray] Tray icon registered.")
-        return True
+        return True, menu, sni
     except Exception as exc:
         print(f"[tray] Could not register tray icon: {exc}")
-        return False
+        return False, None, None

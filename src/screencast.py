@@ -29,6 +29,7 @@ _PORTAL_PATH = "/org/freedesktop/portal/desktop"
 _SC_IFACE    = "org.freedesktop.portal.ScreenCast"
 _SESS_IFACE  = "org.freedesktop.portal.Session"
 _DEFAULT_CAPTURE_WARMUP_MS = 350
+_DEFAULT_REQUEST_TIMEOUT_MS = 12000
 
 FrameCallback = Callable[[GdkPixbuf.Pixbuf | None], None]
 
@@ -59,6 +60,8 @@ class ScreenCastSession:
         self._signals: list = []
         self._frame_delivered = False
         self._capture_warmup_ms = self._read_capture_warmup_ms()
+        self._request_timeout_ms = self._read_request_timeout_ms()
+        self._watchdog_source_id: int | None = None
 
     # ------------------------------------------------------------------
     # Public
@@ -72,6 +75,7 @@ class ScreenCastSession:
             return
         self._callback = callback
         self._frame_delivered = False
+        self._start_watchdog()
         self._create_session()
 
     # ------------------------------------------------------------------
@@ -89,6 +93,15 @@ class ScreenCastSession:
         except ValueError:
             return _DEFAULT_CAPTURE_WARMUP_MS
         return max(0, value)
+
+    @staticmethod
+    def _read_request_timeout_ms() -> int:
+        raw = os.environ.get("FALLENSHOT_REQUEST_TIMEOUT_MS", str(_DEFAULT_REQUEST_TIMEOUT_MS))
+        try:
+            value = int(raw)
+        except ValueError:
+            return _DEFAULT_REQUEST_TIMEOUT_MS
+        return max(1000, value)
 
     @staticmethod
     def _restore_token_path() -> str:
@@ -116,6 +129,25 @@ class ScreenCastSession:
     def _watch(self, path: str, handler: Callable) -> None:
         req = self._bus.get_object(_PORTAL, path)
         self._signals.append(req.connect_to_signal("Response", handler))
+
+    def _start_watchdog(self) -> None:
+        self._stop_watchdog()
+        self._watchdog_source_id = GLib.timeout_add(
+            self._request_timeout_ms,
+            self._on_watchdog_timeout,
+        )
+
+    def _stop_watchdog(self) -> None:
+        if self._watchdog_source_id is not None:
+            try:
+                GLib.source_remove(self._watchdog_source_id)
+            except Exception:
+                pass
+            self._watchdog_source_id = None
+
+    def _on_watchdog_timeout(self) -> bool:
+        self._watchdog_source_id = None
+        return self._fail(f"Request timed out after {self._request_timeout_ms} ms")
 
     def _sc(self) -> dbus.Interface:
         return dbus.Interface(self._bus.get_object(_PORTAL, _PORTAL_PATH), _SC_IFACE)
@@ -273,6 +305,7 @@ class ScreenCastSession:
         return False  # safe return value for GLib.idle_add
 
     def _dispatch(self, pixbuf: GdkPixbuf.Pixbuf | None) -> None:
+        self._stop_watchdog()
         for sig in self._signals:
             try:
                 sig.remove()

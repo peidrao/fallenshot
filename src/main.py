@@ -32,6 +32,8 @@ class FallenshotApp(Gtk.Application):
         self._cast = ScreenCastSession()
         self._capture_in_progress = False
         self._tray_mode_enabled = False
+        self._tray_menu = None
+        self._tray_item = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -46,7 +48,7 @@ class FallenshotApp(Gtk.Application):
 
     def do_activate(self) -> None:
         self.hold()
-        self._tray_mode_enabled = register_tray_icon(
+        self._tray_mode_enabled, self._tray_menu, self._tray_item = register_tray_icon(
             on_capture=self._trigger_capture,
             on_capture5=self._trigger_capture_delayed,
             on_quit=self.quit,
@@ -86,13 +88,17 @@ class FallenshotApp(Gtk.Application):
             self._capture_in_progress = False
             return
 
-        selector = SelectorWindow(
-            self,
-            pixbuf,
-            on_selected=self._on_region_selected,
-            on_cancelled=self._on_selection_cancelled,
-        )
-        selector.present()
+        try:
+            selector = SelectorWindow(
+                self,
+                pixbuf,
+                on_selected=self._on_region_selected,
+                on_cancelled=self._on_selection_cancelled,
+            )
+            selector.present()
+        except Exception as exc:
+            print(f"[main] Failed to open selector window: {exc}")
+            self._capture_in_progress = False
 
     def _on_region_selected(
         self,
@@ -100,10 +106,14 @@ class FallenshotApp(Gtk.Application):
         x: int, y: int, w: int, h: int,
     ) -> None:
         """User confirmed a region — open the annotation overlay."""
-        self._capture_in_progress = False
-        overlay = OverlayWindow(self, pixbuf)
-        overlay.start_annotation(x, y, w, h)
-        overlay.present()
+        try:
+            overlay = OverlayWindow(self, pixbuf)
+            overlay.start_annotation(x, y, w, h)
+            overlay.present()
+        except Exception as exc:
+            print(f"[main] Failed to open annotation overlay: {exc}")
+        finally:
+            self._capture_in_progress = False
 
     def _on_selection_cancelled(self) -> None:
         self._capture_in_progress = False

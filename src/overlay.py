@@ -370,7 +370,8 @@ class OverlayWindow(Gtk.ApplicationWindow):
             self._shapes.append(self._active_shape)
             self._active_shape = None
         else:
-            character = chr(keyval) if 32 <= keyval <= 126 else ""
+            unicode_codepoint = Gdk.keyval_to_unicode(keyval)
+            character = chr(unicode_codepoint) if unicode_codepoint else ""
             if not character:
                 return False
             self._active_shape.text += character

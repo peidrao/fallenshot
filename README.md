@@ -146,25 +146,6 @@ Fallenshot fullscreen editor
 
 ---
 
-## Project Structure
-
-```
-fallenshot/
-├── fallenshot           # Executable entry point
-├── install.sh           # Installer script
-├── icons/
-│   └── fallenshot.png   # App icon
-├── io.github.fallenshot.desktop
-└── src/
-    ├── main.py          # Gtk.Application, app lifecycle
-    ├── capture.py       # xdg-desktop-portal screenshot via DBus
-    ├── overlay.py       # Fullscreen annotation window (GTK4 + Cairo)
-    ├── drawing.py       # Shape classes: Rectangle, Line, Arrow, Text
-    └── export.py        # Clipboard (wl-copy) and PNG save
-```
-
----
-
 ## Known Limitations
 
 - **GNOME only (for now):** The xdg-desktop-portal backend for screenshots is only well-supported on GNOME 49. KDE and wlroots-based compositors may require a different portal backend.

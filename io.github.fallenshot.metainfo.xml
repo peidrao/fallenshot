@@ -33,8 +33,8 @@
 
   <launchable type="desktop-id">io.github.fallenshot.desktop</launchable>
 
-  <url type="homepage">https://github.com/SEU_USUARIO/fallenshot</url>
-  <url type="bugtracker">https://github.com/SEU_USUARIO/fallenshot/issues</url>
+  <url type="homepage">https://github.com/peidrao/fallenshot</url>
+  <url type="bugtracker">https://github.com/peidrao/fallenshot/issues</url>
 
   <developer id="io.github.fallenshot">
     <name>Pedro Fonseca</name>

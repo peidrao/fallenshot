@@ -36,9 +36,7 @@ def test_do_activate_stores_tray_refs(monkeypatch):
 def test_trigger_capture_schedules_when_idle(monkeypatch):
     app = _make_app()
     calls = []
-    monkeypatch.setattr(
-        "src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn))
-    )
+    monkeypatch.setattr("src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn)))
 
     app._trigger_capture()
 
@@ -51,9 +49,7 @@ def test_trigger_capture_ignores_when_in_progress(monkeypatch):
     app._capture_in_progress = True
 
     calls = []
-    monkeypatch.setattr(
-        "src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn))
-    )
+    monkeypatch.setattr("src.main.GLib.timeout_add", lambda ms, fn: calls.append((ms, fn)))
 
     app._trigger_capture()
     assert calls == []

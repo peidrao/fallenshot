@@ -88,9 +88,7 @@ class ScreenCastSession:
 
     @staticmethod
     def _read_capture_warmup_ms() -> int:
-        raw = os.environ.get(
-            "FALLENSHOT_CAPTURE_WARMUP_MS", str(_DEFAULT_CAPTURE_WARMUP_MS)
-        )
+        raw = os.environ.get("FALLENSHOT_CAPTURE_WARMUP_MS", str(_DEFAULT_CAPTURE_WARMUP_MS))
         try:
             value = int(raw)
         except ValueError:
@@ -99,9 +97,7 @@ class ScreenCastSession:
 
     @staticmethod
     def _read_request_timeout_ms() -> int:
-        raw = os.environ.get(
-            "FALLENSHOT_REQUEST_TIMEOUT_MS", str(_DEFAULT_REQUEST_TIMEOUT_MS)
-        )
+        raw = os.environ.get("FALLENSHOT_REQUEST_TIMEOUT_MS", str(_DEFAULT_REQUEST_TIMEOUT_MS))
         try:
             value = int(raw)
         except ValueError:
@@ -110,9 +106,7 @@ class ScreenCastSession:
 
     @staticmethod
     def _restore_token_path() -> str:
-        state_home = os.environ.get(
-            "XDG_STATE_HOME", os.path.expanduser("~/.local/state")
-        )
+        state_home = os.environ.get("XDG_STATE_HOME", os.path.expanduser("~/.local/state"))
         return os.path.join(state_home, "fallenshot", "screencast_restore_token")
 
     def _load_restore_token(self) -> str | None:
@@ -196,9 +190,7 @@ class ScreenCastSession:
             path = self._sc().SelectSources(dbus.ObjectPath(self._session_path), opts)
         except dbus.DBusException as exc:
             if self._restore_token and "InvalidArgument" in str(exc):
-                print(
-                    "[screencast] Restore token rejected by portal — clearing and retrying."
-                )
+                print("[screencast] Restore token rejected by portal — clearing and retrying.")
                 self._clear_restore_token()
                 self._select_sources(with_restore_token=False)
             else:
@@ -229,9 +221,7 @@ class ScreenCastSession:
         if not streams:
             return self._fail("No streams in Start response")
         node_id = int(streams[0][0])
-        GLib.timeout_add(
-            self._capture_warmup_ms, self._open_remote_after_warmup, node_id
-        )
+        GLib.timeout_add(self._capture_warmup_ms, self._open_remote_after_warmup, node_id)
 
     def _open_remote_after_warmup(self, node_id: int) -> bool:
         self._open_remote(node_id)

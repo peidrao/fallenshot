@@ -81,9 +81,7 @@ def test_confirm_clamps_and_invokes_callback():
     selector._sel_end = (999, 999)
 
     selected = []
-    selector._on_selected = lambda pixbuf, x, y, w, h: selected.append(
-        (pixbuf, x, y, w, h)
-    )
+    selector._on_selected = lambda pixbuf, x, y, w, h: selected.append((pixbuf, x, y, w, h))
 
     selector._confirm()
 

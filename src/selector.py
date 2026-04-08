@@ -143,9 +143,7 @@ class SelectorWindow(Gtk.ApplicationWindow):
             if rw > 0 and rh > 0:
                 self._draw_selection(cr, rx, ry, rw, rh)
         else:
-            _draw_hint(
-                cr, win_w, win_h, "Click and drag to select area  ·  ESC to cancel"
-            )
+            _draw_hint(cr, win_w, win_h, "Click and drag to select area  ·  ESC to cancel")
 
     def _draw_selection(
         self,

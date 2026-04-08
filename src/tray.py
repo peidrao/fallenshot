@@ -71,9 +71,7 @@ def _load_icon_pixmap(icon_path: str) -> list:
                 argb[dst + 3] = blue
                 dst += 4
 
-        return [
-            (dbus.Int32(width), dbus.Int32(height), dbus.Array(argb, signature="y"))
-        ]
+        return [(dbus.Int32(width), dbus.Int32(height), dbus.Array(argb, signature="y"))]
     except Exception as exc:
         print(f"[tray] Could not load icon pixmap: {exc}")
         return []
@@ -266,21 +264,15 @@ class _DbusMenu(dbus.service.Object):
     ) -> tuple:  # pyright: ignore[reportUnusedParameter]
         return self._layout()
 
-    @dbus.service.method(
-        dbus_interface=_MENU_IFACE, in_signature="aias", out_signature="a(ia{sv})"
-    )
+    @dbus.service.method(dbus_interface=_MENU_IFACE, in_signature="aias", out_signature="a(ia{sv})")
     def GetGroupProperties(self, _ids: list, _property_names: list):  # noqa: N802  # pyright: ignore[reportUnusedParameter]
         return []
 
-    @dbus.service.method(
-        dbus_interface=_MENU_IFACE, in_signature="ia{sv}", out_signature=""
-    )
+    @dbus.service.method(dbus_interface=_MENU_IFACE, in_signature="ia{sv}", out_signature="")
     def GetProperty(self, _item_id: int, _name: str) -> None:  # noqa: N802  # pyright: ignore[reportUnusedParameter]
         pass
 
-    @dbus.service.method(
-        dbus_interface=_MENU_IFACE, in_signature="isvu", out_signature=""
-    )
+    @dbus.service.method(dbus_interface=_MENU_IFACE, in_signature="isvu", out_signature="")
     def Event(
         self,
         item_id: int,
@@ -297,22 +289,16 @@ class _DbusMenu(dbus.service.Object):
         elif item_id == _ID_QUIT:
             GLib.idle_add(self._on_quit)
 
-    @dbus.service.method(
-        dbus_interface=_MENU_IFACE, in_signature="a(isvu)", out_signature=""
-    )
+    @dbus.service.method(dbus_interface=_MENU_IFACE, in_signature="a(isvu)", out_signature="")
     def EventGroup(self, events: list) -> None:  # noqa: N802
         for item_id, event_id, data, timestamp in events:
             self.Event(item_id, event_id, data, timestamp)
 
-    @dbus.service.method(
-        dbus_interface=_MENU_IFACE, in_signature="i", out_signature="b"
-    )
+    @dbus.service.method(dbus_interface=_MENU_IFACE, in_signature="i", out_signature="b")
     def AboutToShow(self, _item_id: int) -> bool:  # noqa: N802
         return False
 
-    @dbus.service.method(
-        dbus_interface=_MENU_IFACE, in_signature="ai", out_signature="aiai"
-    )
+    @dbus.service.method(dbus_interface=_MENU_IFACE, in_signature="ai", out_signature="aiai")
     def AboutToShowGroup(self, ids: list):  # noqa: N802
         return ([], [])
 
@@ -328,9 +314,7 @@ class _DbusMenu(dbus.service.Object):
 class _StatusNotifierItem(dbus.service.Object):
     """Minimal StatusNotifierItem D-Bus object."""
 
-    def __init__(
-        self, bus: dbus.SessionBus, icon_pixmap: list, on_capture: Callable
-    ) -> None:
+    def __init__(self, bus: dbus.SessionBus, icon_pixmap: list, on_capture: Callable) -> None:
         self._service_name = f"org.kde.StatusNotifierItem-{os.getpid()}-1"
         self._bus_name = dbus.service.BusName(self._service_name, bus)
         self._icon_pixmap = icon_pixmap
@@ -348,9 +332,7 @@ class _StatusNotifierItem(dbus.service.Object):
             # at inconsistent scale.
             "IconPixmap": dbus.Array([], signature="(iiay)"),
             "IconThemePath": dbus.String(
-                os.path.expanduser(
-                    os.environ.get("XDG_DATA_HOME", "~/.local/share") + "/icons"
-                )
+                os.path.expanduser(os.environ.get("XDG_DATA_HOME", "~/.local/share") + "/icons")
             ),
             "ToolTip": dbus.Struct(
                 (
@@ -420,9 +402,7 @@ def register_tray_icon(
         sni = _StatusNotifierItem(bus, icon_pixmap, on_capture)
 
         watcher = bus.get_object(_WATCHER_NAME, _WATCHER_PATH)
-        dbus.Interface(watcher, _WATCHER_IFACE).RegisterStatusNotifierItem(
-            sni._service_name
-        )
+        dbus.Interface(watcher, _WATCHER_IFACE).RegisterStatusNotifierItem(sni._service_name)
 
         print("[tray] Tray icon registered.")
         return True, menu, sni

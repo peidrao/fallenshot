@@ -78,9 +78,7 @@ class OverlayWindow(Gtk.ApplicationWindow):
         "text": "Text (T)",
     }
 
-    def __init__(
-        self, app: FallenshotApp, screenshot_pixbuf: GdkPixbuf.Pixbuf
-    ) -> None:
+    def __init__(self, app: FallenshotApp, screenshot_pixbuf: GdkPixbuf.Pixbuf) -> None:
         """
         Build the overlay window around the provided screenshot image.
 
@@ -298,9 +296,7 @@ class OverlayWindow(Gtk.ApplicationWindow):
             self._undo_history.pop()
         self._active_shape = None
 
-    def _drag_begin(
-        self, _gesture: Gtk.GestureDrag, start_x: float, start_y: float
-    ) -> None:
+    def _drag_begin(self, _gesture: Gtk.GestureDrag, start_x: float, start_y: float) -> None:
         # If a text annotation is already in progress, commit it before starting a new shape
         self._commit_active_text()
 
@@ -322,9 +318,7 @@ class OverlayWindow(Gtk.ApplicationWindow):
             )
         self._drawing_area.queue_draw()
 
-    def _drag_update(
-        self, gesture: Gtk.GestureDrag, delta_x: float, delta_y: float
-    ) -> None:
+    def _drag_update(self, gesture: Gtk.GestureDrag, delta_x: float, delta_y: float) -> None:
         _active, start_x, start_y = gesture.get_start_point()
         if start_x is None or start_y is None:
             return
@@ -334,9 +328,7 @@ class OverlayWindow(Gtk.ApplicationWindow):
             self._active_shape.update(image_x, image_y)
         self._drawing_area.queue_draw()
 
-    def _drag_end(
-        self, _gesture: Gtk.GestureDrag, _delta_x: float, _delta_y: float
-    ) -> None:
+    def _drag_end(self, _gesture: Gtk.GestureDrag, _delta_x: float, _delta_y: float) -> None:
         if self._active_shape is not None and self._active_tool != "text":
             self._shapes.append(self._active_shape)
             self._active_shape = None
@@ -381,17 +373,13 @@ class OverlayWindow(Gtk.ApplicationWindow):
             self._cycle_color()
             return True
 
-        if self._active_tool == "text" and isinstance(
-            self._active_shape, TextAnnotation
-        ):
+        if self._active_tool == "text" and isinstance(self._active_shape, TextAnnotation):
             return self._handle_text_input(keyval)
 
         return False
 
     def _handle_text_input(self, keyval: int) -> bool:
-        if self._active_shape is None or not isinstance(
-            self._active_shape, TextAnnotation
-        ):
+        if self._active_shape is None or not isinstance(self._active_shape, TextAnnotation):
             return False
 
         if keyval == Gdk.KEY_BackSpace:

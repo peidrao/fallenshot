@@ -117,9 +117,7 @@ def _install_fake_gi() -> None:
             super().__init__()
             self._w = width
             self._h = height
-            self._pixels = (
-                pixels if pixels is not None else bytes([1, 2, 3, 4] * (width * height))
-            )
+            self._pixels = pixels if pixels is not None else bytes([1, 2, 3, 4] * (width * height))
 
         def get_width(self):
             return self._w

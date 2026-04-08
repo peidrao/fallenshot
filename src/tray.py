@@ -27,7 +27,8 @@ _WATCHER_PATH = "/StatusNotifierWatcher"
 _WATCHER_IFACE = "org.kde.StatusNotifierWatcher"
 _MENU_PATH = "/MenuBar"
 _MENU_IFACE = "com.canonical.dbusmenu"
-_ICON_NAME = "io.github.fallenshot"
+_APP_ICON_NAME = "io.github.fallenshot"
+_TRAY_ICON_NAME = "fallenshot-tray"
 
 # Menu item IDs
 _ID_ROOT = 0
@@ -40,7 +41,9 @@ _ID_QUIT = 4
 def _load_icon_pixmap(icon_path: str) -> list:
     """Load PNG icon and return it as ARGB32 array for SNI IconPixmap."""
     try:
-        pb = GdkPixbuf.Pixbuf.new_from_file_at_size(icon_path, 32, 32)
+        pb = GdkPixbuf.Pixbuf.new_from_file(icon_path)
+        pb = _crop_alpha_bounds(pb)
+        pb = _normalize_tray_size(pb, size=24, padding=1)
         width = pb.get_width()
         height = pb.get_height()
         n_channels = pb.get_n_channels()
@@ -76,6 +79,68 @@ def _load_icon_pixmap(icon_path: str) -> list:
         return []
 
 
+def _crop_alpha_bounds(pb: GdkPixbuf.Pixbuf) -> GdkPixbuf.Pixbuf:
+    """Crop transparent margins to avoid tiny visible symbols in tray hosts."""
+    if not pb.get_has_alpha() or pb.get_n_channels() < 4:
+        return pb
+
+    width = pb.get_width()
+    height = pb.get_height()
+    rowstride = pb.get_rowstride()
+    n_channels = pb.get_n_channels()
+    raw = pb.get_pixels()
+
+    minx, miny = width, height
+    maxx, maxy = -1, -1
+    for y in range(height):
+        row = y * rowstride
+        for x in range(width):
+            alpha = raw[row + x * n_channels + 3]
+            if alpha <= 8:
+                continue
+            if x < minx:
+                minx = x
+            if y < miny:
+                miny = y
+            if x > maxx:
+                maxx = x
+            if y > maxy:
+                maxy = y
+
+    if maxx < 0:
+        return pb
+
+    crop_w = maxx - minx + 1
+    crop_h = maxy - miny + 1
+    return pb.new_subpixbuf(minx, miny, crop_w, crop_h).copy()
+
+
+def _normalize_tray_size(
+    pb: GdkPixbuf.Pixbuf, size: int = 24, padding: int = 1
+) -> GdkPixbuf.Pixbuf:
+    """Scale icon to a predictable visual size and center it in a transparent canvas."""
+    inner = max(1, size - 2 * padding)
+    scale = min(inner / pb.get_width(), inner / pb.get_height())
+    scaled_w = max(1, int(round(pb.get_width() * scale)))
+    scaled_h = max(1, int(round(pb.get_height() * scale)))
+    scaled = pb.scale_simple(scaled_w, scaled_h, GdkPixbuf.InterpType.BILINEAR)
+    if scaled is None:
+        return pb
+
+    canvas = GdkPixbuf.Pixbuf.new(
+        GdkPixbuf.Colorspace.RGB,
+        True,
+        8,
+        size,
+        size,
+    )
+    canvas.fill(0x00000000)
+    x = (size - scaled_w) // 2
+    y = (size - scaled_h) // 2
+    scaled.copy_area(0, 0, scaled_w, scaled_h, canvas, x, y)
+    return canvas
+
+
 def _resolve_icon_path() -> str | None:
     """Return the best local PNG path for tray IconPixmap fallback."""
     candidates = []
@@ -84,7 +149,18 @@ def _resolve_icon_path() -> str | None:
         candidates.extend(
             [
                 os.path.join(
-                    xdg_data_home, "icons", "hicolor", "256x256", "apps", f"{_ICON_NAME}.png"
+                    xdg_data_home,
+                    "icons",
+                    "hicolor",
+                    "256x256",
+                    "apps",
+                    f"{_TRAY_ICON_NAME}.png",
+                ),
+                os.path.join(
+                    xdg_data_home, "icons", "hicolor", "256x256", "apps", "fallenshot-tray.png"
+                ),
+                os.path.join(
+                    xdg_data_home, "icons", "hicolor", "256x256", "apps", f"{_APP_ICON_NAME}.png"
                 ),
                 os.path.join(
                     xdg_data_home, "icons", "hicolor", "256x256", "apps", "fallenshot.png"
@@ -94,9 +170,18 @@ def _resolve_icon_path() -> str | None:
     candidates.extend(
         [
             os.path.expanduser(
+                "~/.local/share/icons/hicolor/256x256/apps/io.github.fallenshot-tray.png"
+            ),
+            os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps/fallenshot-tray.png"),
+            os.path.expanduser(
                 "~/.local/share/icons/hicolor/256x256/apps/io.github.fallenshot.png"
             ),
             os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps/fallenshot.png"),
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "icons",
+                "fallenshot-tray.png",
+            ),
             os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "icons",
@@ -258,8 +343,10 @@ class _StatusNotifierItem(dbus.service.Object):
             "Id": dbus.String("fallenshot"),
             "Title": dbus.String("Fallenshot"),
             "Status": dbus.String("Active"),
-            "IconName": dbus.String(_ICON_NAME),
-            "IconPixmap": dbus.Array(self._icon_pixmap, signature="(iiay)"),
+            "IconName": dbus.String(_TRAY_ICON_NAME),
+            # Prefer theme icon by name; some hosts render custom ARGB pixmaps
+            # at inconsistent scale.
+            "IconPixmap": dbus.Array([], signature="(iiay)"),
             "IconThemePath": dbus.String(
                 os.path.expanduser(
                     os.environ.get("XDG_DATA_HOME", "~/.local/share") + "/icons"
@@ -327,8 +414,7 @@ def register_tray_icon(
     """
     try:
         bus = dbus.SessionBus()
-        icon_path = _resolve_icon_path()
-        icon_pixmap = _load_icon_pixmap(icon_path) if icon_path else []
+        icon_pixmap = []
 
         menu = _DbusMenu(bus, on_capture, on_capture5, on_quit)
         sni = _StatusNotifierItem(bus, icon_pixmap, on_capture)

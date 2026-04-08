@@ -41,6 +41,8 @@ modules:
       # Ícone
       - install -Dm644 icons/fallenshot.png
           /app/share/icons/hicolor/256x256/apps/io.github.fallenshot.png
+      - install -Dm644 icons/fallenshot-tray.png
+          /app/share/icons/hicolor/256x256/apps/io.github.fallenshot-tray.png
 
       # .desktop
       - install -Dm644 io.github.fallenshot.desktop

@@ -42,9 +42,12 @@ echo "==> Executável: $LOCAL_BIN/fallenshot"
 ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
 mkdir -p "$ICON_DIR"
 cp "$SCRIPT_DIR/icons/fallenshot.png" "$ICON_DIR/io.github.fallenshot.png"
+cp "$SCRIPT_DIR/icons/fallenshot-tray.png" "$ICON_DIR/io.github.fallenshot-tray.png"
 # Compatibilidade com referências antigas.
 rm -f "$ICON_DIR/fallenshot.png"
 ln -sf "$ICON_DIR/io.github.fallenshot.png" "$ICON_DIR/fallenshot.png"
+rm -f "$ICON_DIR/fallenshot-tray.png"
+ln -sf "$ICON_DIR/io.github.fallenshot-tray.png" "$ICON_DIR/fallenshot-tray.png"
 gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 echo "==> Ícone instalado."
 

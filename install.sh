@@ -32,6 +32,7 @@ fi
 chmod +x "$SCRIPT_DIR/fallenshot"
 LOCAL_BIN="$HOME/.local/bin"
 mkdir -p "$LOCAL_BIN"
+rm -f "$LOCAL_BIN/fallenshot"
 ln -sf "$SCRIPT_DIR/fallenshot" "$LOCAL_BIN/fallenshot"
 echo "==> Executável: $LOCAL_BIN/fallenshot"
 
@@ -40,7 +41,10 @@ echo "==> Executável: $LOCAL_BIN/fallenshot"
 # ------------------------------------------------------------------
 ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
 mkdir -p "$ICON_DIR"
-cp "$SCRIPT_DIR/icons/fallenshot.png" "$ICON_DIR/fallenshot.png"
+cp "$SCRIPT_DIR/icons/fallenshot.png" "$ICON_DIR/io.github.fallenshot.png"
+# Compatibilidade com referências antigas.
+rm -f "$ICON_DIR/fallenshot.png"
+ln -sf "$ICON_DIR/io.github.fallenshot.png" "$ICON_DIR/fallenshot.png"
 gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 echo "==> Ícone instalado."
 
@@ -50,6 +54,7 @@ echo "==> Ícone instalado."
 DESKTOP_DIR="$HOME/.local/share/applications"
 mkdir -p "$DESKTOP_DIR"
 cp "$SCRIPT_DIR/io.github.fallenshot.desktop" "$DESKTOP_DIR/io.github.fallenshot.desktop"
+sed -i "s|^Exec=.*$|Exec=$LOCAL_BIN/fallenshot|" "$DESKTOP_DIR/io.github.fallenshot.desktop"
 update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
 echo "==> Atalho no launcher instalado."
 

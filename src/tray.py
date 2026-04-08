@@ -12,6 +12,10 @@ from collections.abc import Callable
 import dbus
 import dbus.mainloop.glib
 import dbus.service
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
+
 from gi.repository import GdkPixbuf, GLib
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
@@ -23,6 +27,7 @@ _WATCHER_PATH = "/StatusNotifierWatcher"
 _WATCHER_IFACE = "org.kde.StatusNotifierWatcher"
 _MENU_PATH = "/MenuBar"
 _MENU_IFACE = "com.canonical.dbusmenu"
+_ICON_NAME = "io.github.fallenshot"
 
 # Menu item IDs
 _ID_ROOT = 0
@@ -69,6 +74,40 @@ def _load_icon_pixmap(icon_path: str) -> list:
     except Exception as exc:
         print(f"[tray] Could not load icon pixmap: {exc}")
         return []
+
+
+def _resolve_icon_path() -> str | None:
+    """Return the best local PNG path for tray IconPixmap fallback."""
+    candidates = []
+    xdg_data_home = os.environ.get("XDG_DATA_HOME")
+    if xdg_data_home:
+        candidates.extend(
+            [
+                os.path.join(
+                    xdg_data_home, "icons", "hicolor", "256x256", "apps", f"{_ICON_NAME}.png"
+                ),
+                os.path.join(
+                    xdg_data_home, "icons", "hicolor", "256x256", "apps", "fallenshot.png"
+                ),
+            ]
+        )
+    candidates.extend(
+        [
+            os.path.expanduser(
+                "~/.local/share/icons/hicolor/256x256/apps/io.github.fallenshot.png"
+            ),
+            os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps/fallenshot.png"),
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "icons",
+                "fallenshot.png",
+            ),
+        ]
+    )
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
 
 
 class _DbusMenu(dbus.service.Object):
@@ -219,8 +258,13 @@ class _StatusNotifierItem(dbus.service.Object):
             "Id": dbus.String("fallenshot"),
             "Title": dbus.String("Fallenshot"),
             "Status": dbus.String("Active"),
-            "IconName": dbus.String("io.github.fallenshot"),
+            "IconName": dbus.String(_ICON_NAME),
             "IconPixmap": dbus.Array(self._icon_pixmap, signature="(iiay)"),
+            "IconThemePath": dbus.String(
+                os.path.expanduser(
+                    os.environ.get("XDG_DATA_HOME", "~/.local/share") + "/icons"
+                )
+            ),
             "ToolTip": dbus.Struct(
                 (
                     "",
@@ -283,13 +327,8 @@ def register_tray_icon(
     """
     try:
         bus = dbus.SessionBus()
-
-        icon_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "icons",
-            "fallenshot.png",
-        )
-        icon_pixmap = _load_icon_pixmap(icon_path)
+        icon_path = _resolve_icon_path()
+        icon_pixmap = _load_icon_pixmap(icon_path) if icon_path else []
 
         menu = _DbusMenu(bus, on_capture, on_capture5, on_quit)
         sni = _StatusNotifierItem(bus, icon_pixmap, on_capture)

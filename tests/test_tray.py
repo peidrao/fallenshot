@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from src import tray
 
 
@@ -71,6 +73,22 @@ def test_load_icon_pixmap_failure_returns_empty(monkeypatch):
         staticmethod(lambda *a: (_ for _ in ()).throw(RuntimeError("bad icon"))),
     )
     assert tray._load_icon_pixmap("icon.png") == []
+
+
+def test_resolve_icon_path_prefers_xdg_data_home(monkeypatch, tmp_path):
+    icon_dir = tmp_path / "icons" / "hicolor" / "256x256" / "apps"
+    icon_dir.mkdir(parents=True)
+    icon_file = icon_dir / "io.github.fallenshot.png"
+    icon_file.write_bytes(b"png")
+
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    assert tray._resolve_icon_path() == os.fspath(icon_file)
+
+
+def test_resolve_icon_path_returns_none_when_missing(monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", "/tmp/fallenshot-not-found")
+    monkeypatch.setattr(tray.os.path, "isfile", lambda _path: False)
+    assert tray._resolve_icon_path() is None
 
 
 def test_dbusmenu_event_dispatches_callbacks(monkeypatch):

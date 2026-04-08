@@ -1,10 +1,13 @@
 [Desktop Entry]
 Name=Fallenshot
+GenericName=FileShot
 Comment=Ferramenta de screenshot para Wayland
 Exec=fallenshot
-Icon=fallenshot
+TryExec=fallenshot
+Icon=io.github.fallenshot
 Terminal=false
 Type=Application
 Categories=Graphics;Utility;
-Keywords=screenshot;captura;anotação;wayland;
-StartupNotify=false
+Keywords=fallenshot;fileshot;screenshot;captura;anotacao;wayland;
+StartupWMClass=io.github.fallenshot
+StartupNotify=true
